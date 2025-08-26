@@ -7,6 +7,7 @@ import com.example.issueDive.entity.Issue;
 import com.example.issueDive.entity.IssueStatus;
 import com.example.issueDive.entity.User;
 import com.example.issueDive.exception.NotFoundException;
+import com.example.issueDive.exception.ValidationException;
 import com.example.issueDive.repository.IssueRepository;
 import com.example.issueDive.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -189,6 +190,68 @@ public class IssueServiceTest {
 
         // then
         verify(issueRepository).deleteById(issueId); // 호출 여부 체크
+    }
+
+    /**
+     * 이슈 상태 변경 테스트
+     * 정상 케이스: OPEN 또는 CLOSED 상태로 변경 시 정상 응답 확인
+     */
+    @Test
+    void changeIssueStatus_validStatus_success() {
+        // given
+        Issue issue = Issue.builder()
+                .id(1L)
+                .status(IssueStatus.OPEN)
+                .author(User.builder().id(1L).build())
+                .build();
+
+        when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
+        when(issueRepository.save(any(Issue.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        //when
+        IssueResponse response = issueService.changeIssueStatus(1L, "CLOSED");
+
+        // then
+        assertEquals("CLOSED", response.status());
+        verify(issueRepository).save(issue);
+    }
+
+    /**
+     * 이슈 상태 변경 테스트
+     * 예외 케이스1: 존재하지 않는 이슈 ID 요청 시 NotFoundException 발생 확인
+     */
+    @Test
+    void changeIssueStatus_issueNotFound() {
+        // given
+        when(issueRepository.findById(99L)).thenReturn(Optional.empty());
+
+        // when-then
+        NotFoundException ex = assertThrows(NotFoundException.class,
+                () -> issueService.changeIssueStatus(99L, "OPEN"));
+
+        assertEquals("Issue not found", ex.getMessage());
+    }
+
+    /**
+     * 이슈 상태 변경 테스트
+     * 예외 케이스2: 유효하지 않은 상태 값 요청 시 ValidationException 발생 확인
+     */
+    @Test
+    void changeIssueStatus_invalidStatus_throwsValidationException() {
+        // given
+        Issue issue = Issue.builder()
+                .id(1L)
+                .status(IssueStatus.OPEN)
+                .author(User.builder().id(1L).build())
+                .build();
+
+        when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
+
+        // when-then
+        ValidationException ex = assertThrows(ValidationException.class,
+                () -> issueService.changeIssueStatus(1L, "INVALID_STATUS"));
+
+        assertTrue(ex.getMessage().contains("status must be either OPEN or CLOSED"));
     }
 
     /**

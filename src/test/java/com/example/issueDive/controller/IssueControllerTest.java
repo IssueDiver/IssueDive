@@ -2,6 +2,9 @@ package com.example.issueDive.controller;
 
 import com.example.issueDive.dto.CreateIssueRequest;
 import com.example.issueDive.dto.IssueResponse;
+import com.example.issueDive.exception.ErrorCode;
+import com.example.issueDive.exception.NotFoundException;
+import com.example.issueDive.exception.ValidationException;
 import com.example.issueDive.service.IssueService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -70,4 +73,87 @@ public class IssueControllerTest {
                 .andExpect(jsonPath("$.data.id").value(1))
                 .andExpect(jsonPath("$.data.title").value("제목"));
     }
+
+    /**
+     * 이슈 상태 변경 API 테스트
+     * 성공
+     */
+    @Test
+    void changeIssueStatus_success() throws Exception {
+
+        // given
+        IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "CLOSED", 1L, 2L, null, null);
+        Mockito.when(issueService.changeIssueStatus(1L, "CLOSED")).thenReturn(mockResponse);
+
+        String requestBody = """
+        {
+            "status": "CLOSED"
+        }
+        """;
+
+        // when: HTTP PATCH 요청
+        mockMvc.perform(patch("/issues/1/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                // then: 성공 응답 확인
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.status").value("CLOSED"));
+    }
+
+    /**
+     * 이슈 상태 변경 API 테스트
+     * 실패: Invalid Status
+     */
+    @Test
+    void changeIssueStatus_invalidStatus_badRequest() throws Exception {
+
+        // given
+        Mockito.when(issueService.changeIssueStatus(Mockito.eq(1L), Mockito.eq("INVALID")))
+                .thenThrow(new ValidationException(ErrorCode.InvalidStatus, "status must be either OPEN or CLOSED"));
+
+        String requestBody = """
+        {
+            "status": "INVALID"
+        }
+        """;
+
+        // when: HTTP PATCH 요청
+        mockMvc.perform(patch("/issues/1/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                // then: BadRequest (400) Invalid Status 에러 응답 확인
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("InvalidStatus"));
+    }
+
+    /**
+     * 이슈 상태 변경 API 테스트
+     * 실패: Issue Not Found
+     */
+    @Test
+    void changeIssueStatus_issueNotFound_notFound() throws Exception {
+
+        // given
+        Mockito.when(issueService.changeIssueStatus(Mockito.eq(99L), Mockito.anyString()))
+                .thenThrow(new NotFoundException("Issue not found"));
+
+        String requestBody = """
+        {
+            "status": "CLOSED"
+        }
+        """;
+
+        // when: HTTP PATCH 요청
+        mockMvc.perform(patch("/issues/99/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                // then: NotFound (404) 에러 응답 확인
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("IssueNotFound"));
+    }
+
+
 }

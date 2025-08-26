@@ -54,6 +54,22 @@ public class IssueController {
     }
 
     /**
+     * 이슈 상태 변경 PATCH /issues/{id}/status
+     * @param id 이슈 ID
+     * @param body { "status": "OPEN" or "CLOSED" }
+     * @return 변경된 상태 IssueResponse 반환
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<IssueResponse>> changeIssueStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+
+        String status = body.get("status");
+        IssueResponse response = issueService.changeIssueStatus(id, status);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    /**
      * Delete
      * @param id 삭제할 이슈
      * @return 공통 응답 포맷 + 성공 메세지

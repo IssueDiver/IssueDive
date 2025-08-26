@@ -6,7 +6,9 @@ import com.example.issueDive.dto.UpdateIssueRequest;
 import com.example.issueDive.entity.Issue;
 import com.example.issueDive.entity.IssueStatus;
 import com.example.issueDive.entity.User;
+import com.example.issueDive.exception.ErrorCode;
 import com.example.issueDive.exception.NotFoundException;
+import com.example.issueDive.exception.ValidationException;
 import com.example.issueDive.repository.IssueRepository;
 import com.example.issueDive.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -76,6 +78,28 @@ public class IssueService {
             issue.setAssignee(assignee);
         }
 
+        Issue updated = issueRepository.save(issue);
+        return toResponse(updated);
+    }
+
+    /**
+     * 이슈 상태 변경
+     * @param id 상태 변경할 Issue ID
+     * @param status 변경할 상태 (OPEN, CLOSED)
+     * @return 상태가 변경된 IssueResponse
+     */
+    public IssueResponse changeIssueStatus(Long id, String status) {
+        Issue issue = issueRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Issue not found"));
+
+        IssueStatus newStatus;
+        try {
+            newStatus = IssueStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ValidationException(ErrorCode.InvalidStatus, "status must be either OPEN or CLOSED");
+        }
+
+        issue.setStatus(newStatus);
         Issue updated = issueRepository.save(issue);
         return toResponse(updated);
     }
