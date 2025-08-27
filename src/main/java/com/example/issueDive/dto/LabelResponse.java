@@ -1,6 +1,6 @@
-package com.issueDive.dto;
+package com.example.issueDive.dto;
 
-import com.issueDive.entity.Label;
+import com.example.issueDive.entity.Label;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,14 +18,15 @@ public class LabelResponse {
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
 
-    public static LabelResponse from(Label _label) {
+    public static LabelResponse from(Label label) {
+
         return LabelResponse.builder()
-                .id(_label.getId())
-                .name(_label.getName())
-                .color(_label.getColor())
-                .description(_label.getDescription())
-                .created_at(_label.getCreated_at())
-                .updated_at(_label.getUpdated_at())
+                .id(label.getId())
+                .name(label.getName())
+                .color(label.getColor())
+                .description(label.getDescription())
+                .created_at(label.getCreated_at())
+                .updated_at(label.getUpdated_at())
                 .build();
     }
 }

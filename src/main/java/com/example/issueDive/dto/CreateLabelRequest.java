@@ -1,4 +1,4 @@
-package com.issueDive.dto;
+package com.example.issueDive.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

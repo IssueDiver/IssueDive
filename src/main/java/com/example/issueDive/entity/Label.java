@@ -1,4 +1,4 @@
-package com.issueDive.entity;
+package com.example.issueDive.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;

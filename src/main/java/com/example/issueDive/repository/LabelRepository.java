@@ -1,9 +1,10 @@
-package com.issueDive.repository;
+package com.example.issueDive.repository;
 
-import com.issueDive.entity.Label;
+import com.example.issueDive.entity.Label;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
 
 public interface LabelRepository extends JpaRepository<Label,Long> {
     boolean existsByNameIgnoreCase(String name);
-    Label findByIdIgnoreCase(Long id);
 }
