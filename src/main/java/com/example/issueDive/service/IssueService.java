@@ -1,23 +1,30 @@
 package com.example.issueDive.service;
 
 import com.example.issueDive.dto.CreateIssueRequest;
+import com.example.issueDive.dto.IssueFilterRequest;
 import com.example.issueDive.dto.IssueResponse;
 import com.example.issueDive.dto.UpdateIssueRequest;
-import com.example.issueDive.entity.Issue;
-import com.example.issueDive.entity.IssueStatus;
-import com.example.issueDive.entity.User;
+import com.example.issueDive.entity.*;
 import com.example.issueDive.exception.ErrorCode;
 import com.example.issueDive.exception.NotFoundException;
 import com.example.issueDive.exception.ValidationException;
 import com.example.issueDive.repository.IssueRepository;
 import com.example.issueDive.repository.UserRepository;
+import com.querydsl.core.BooleanBuilder;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class IssueService {
 
+    private final JPAQueryFactory queryFactory;
+    private final QIssue qIssue = QIssue.issue;
     private final IssueRepository issueRepository;
     private final UserRepository userRepository; // 작성자/담당자 유효성 검증용
 
@@ -46,6 +53,44 @@ public class IssueService {
 
         Issue saved = issueRepository.save(issue);
         return toResponse(saved);
+    }
+
+    /**
+     * 다중 조회 (필터링, 페이징)
+     * @param filter status, authorId, labelIds, page, size, sort, order
+     * @return 필터링, 페이징 등 적용된 이슈 dto 리스트(페이지)
+     */
+    public Page<IssueResponse> getFilteredIssues(IssueFilterRequest filter) {
+        // QueryDSL이나 Criteria API 등으로 동적 쿼리 작성
+
+        // 동적 조건
+        BooleanBuilder builder = new BooleanBuilder();
+        if (filter.status() != null) builder.and(qIssue.status.eq(IssueStatus.valueOf(filter.status().toUpperCase())));
+        if (filter.authorId()!=null) builder.and(qIssue.author.id.eq(filter.authorId()));
+        if (filter.assigneeId()!=null) builder.and(qIssue.assignee.id.eq(filter.assigneeId()));
+        if (filter.labelIds()!=null && !filter.labelIds().isEmpty()) builder.and(qIssue.labels.any().id.in(filter.labelIds()));
+
+        // 페이징 객체
+        int page = filter.page();
+        int size = filter.size();
+        Sort sort = Sort.by(Sort.Direction.fromString(filter.order()), filter.sort());
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // 쿼리 실행
+        List<Issue> issues = queryFactory
+                .selectFrom(qIssue)
+                .leftJoin(qIssue.labels).fetchJoin() // .leftJoin(qIssue.labels, QLabel.label).fetchJoin()
+                .where(builder)
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .orderBy("asc".equalsIgnoreCase(filter.order())?qIssue.createdAt.asc() : qIssue.createdAt.desc())
+                .fetch();
+
+        long total = queryFactory.selectFrom(qIssue).where(builder).fetchCount(); // 전체 카운트 조회 (페이징 정보용)
+        List<IssueResponse> dtoList = issues.stream().map(this::toResponse).toList(); // Entity -> DTO 변환
+
+        // 페이지 결과 반환
+        return new PageImpl<>(dtoList, pageable, total);
     }
 
     /**
@@ -116,6 +161,8 @@ public class IssueService {
     }
 
     private IssueResponse toResponse(Issue issue) {
+        List<Long> labelIds = issue.getLabels().stream().map(Label::getId).toList();
+
         return new IssueResponse(
                 issue.getId(),
                 issue.getTitle(),
@@ -123,6 +170,7 @@ public class IssueService {
                 issue.getStatus().name(),
                 issue.getAuthor().getId(),
                 issue.getAssignee() != null ? issue.getAssignee().getId() : null,
+                labelIds,
                 issue.getCreatedAt(),
                 issue.getUpdatedAt()
         );

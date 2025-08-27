@@ -16,6 +16,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -35,7 +38,11 @@ public class IssueControllerTest {
     public void createIssue_success() throws Exception {
 
         // given
-        IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "OPEN", 1L, 2L, null, null);
+        IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "OPEN", 1L, 2L,
+                List.of(1L, 2L),  // 라벨 ID 리스트 샘플, 테스트에 맞춰 변경 가능
+                LocalDateTime.now(),  // createdAt 예시
+                LocalDateTime.now()   // updatedAt 예시
+        );
 
         Mockito.when(issueService.createIssue(any(CreateIssueRequest.class), anyLong())).thenReturn(mockResponse);
 
@@ -62,7 +69,11 @@ public class IssueControllerTest {
     @Test
     public void getIssue_success() throws Exception {
         // given
-        IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "OPEN", 1L, 2L, null, null);
+        IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "OPEN", 1L, 2L,
+                List.of(1L, 2L),  // 라벨 ID 리스트 샘플, 테스트에 맞춰 변경 가능
+                LocalDateTime.now(),  // createdAt 예시
+                LocalDateTime.now()   // updatedAt 예시
+        );
         Mockito.when(issueService.getIssue(1L)).thenReturn(mockResponse); // issueService.getIssue(1L) 호출 시 mockResponse 반환하도록 Stub 설정
 
         // when: HTTP GET 요청 시뮬레이션
@@ -82,7 +93,11 @@ public class IssueControllerTest {
     void changeIssueStatus_success() throws Exception {
 
         // given
-        IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "CLOSED", 1L, 2L, null, null);
+        IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "CLOSED", 1L, 2L,
+                List.of(1L, 2L),  // 라벨 ID 리스트 샘플, 테스트에 맞춰 변경 가능
+                LocalDateTime.now(),  // createdAt 예시
+                LocalDateTime.now()   // updatedAt 예시
+        );
         Mockito.when(issueService.changeIssueStatus(1L, "CLOSED")).thenReturn(mockResponse);
 
         String requestBody = """
