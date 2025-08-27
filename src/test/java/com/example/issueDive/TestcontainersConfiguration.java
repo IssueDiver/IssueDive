@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
-@TestConfiguration(proxyBeanMethods = false)
+// @TestConfiguration(proxyBeanMethods = false)
 class TestcontainersConfiguration {
 
 	@Bean

@@ -1,11 +1,10 @@
 package com.example.issueDive.controller;
 
-import com.example.issueDive.dto.CreateIssueRequest;
-import com.example.issueDive.dto.IssueResponse;
-import com.example.issueDive.dto.UpdateIssueRequest;
+import com.example.issueDive.dto.*;
 import com.example.issueDive.service.IssueService;
-import com.example.issueDive.dto.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +31,28 @@ public class IssueController {
     }
 
     /**
-     * Read
+     * Read: 다중 조회(필터링, 페이징)
+     * @param filter status, authorId, labelIds, page, size, sort, order
+     * @return 공통 응답 포맷 + 조회한 이슈 dto 리스트(페이지)
+     */
+    @GetMapping
+    public ResponseEntity<ApiResponse<Page<IssueResponse>>> getIssues(@Valid IssueFilterRequest filter) {
+        Page<IssueResponse> issue = issueService.getFilteredIssues(
+                new IssueFilterRequest(
+                        filter.status(),
+                        filter.authorId(),
+                        filter.assigneeId(),
+                        filter.labelIds(),
+                        filter.page() != null ? filter.page() : 0,
+                        filter.size() != null ? filter.size() : 10,
+                        filter.sort() != null ? filter.sort() : "createdAt",
+                        filter.order() != null ? filter.order() : "desc"
+                ));
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(issue));
+    }
+
+    /**
+     * Read: 단건 조회
      * @param id 조회할 이슈
      * @return 공통 응답 포맷 + 해당 이슈 dto
      */

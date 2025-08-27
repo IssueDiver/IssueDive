@@ -3,7 +3,10 @@ package com.example.issueDive.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.awt.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @RequiredArgsConstructor
 @AllArgsConstructor
@@ -45,4 +48,12 @@ public class Issue {
             columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
     private LocalDateTime updatedAt;
 
+    @Builder.Default
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "issue_label",
+            joinColumns = @JoinColumn(name = "issue_id"),
+            inverseJoinColumns = @JoinColumn(name = "label_id")
+    )
+    private Set<Label> labels = new HashSet<>();
 }
