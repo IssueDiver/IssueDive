@@ -36,9 +36,6 @@ out/
 ### VS Code ###
 .vscode/
 
-src/main/resources/application.properties
-src/test/resources/application-test.properties
-
-# Spring Boot
-*.yml
-*.yaml
+# Application Properties
+application.properties
+application-test.properties
