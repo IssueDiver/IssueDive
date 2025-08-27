@@ -26,4 +26,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of(ErrorCode.InternalServerError, e.getMessage()));
     }
+  
+    @ExceptionHandler(LabelNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleLabelNotFound(LabelNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of(ErrorCode.LabelNotFound, e.getMessage()));
+    }
 }
