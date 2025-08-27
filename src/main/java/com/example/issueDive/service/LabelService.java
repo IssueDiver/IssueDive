@@ -2,6 +2,7 @@ package com.example.issueDive.service;
 
 import com.example.issueDive.dto.CreateLabelRequest;
 import com.example.issueDive.dto.LabelResponse;
+import com.example.issueDive.dto.UpdateLabelRequest;
 import com.example.issueDive.entity.Label;
 import com.example.issueDive.exception.ErrorCode;
 import com.example.issueDive.exception.LabelNotFoundException;
@@ -53,5 +54,42 @@ public class LabelService {
                 .orElseThrow(() -> new LabelNotFoundException("Label not found: id=" + id));
 
         return LabelResponse.from(label);
+    }
+
+    //라벨 수정
+    @Transactional
+    public LabelResponse updateLabel(Long id, UpdateLabelRequest request) {
+        Label label = labelRepository.findById(id)
+                .orElseThrow(() -> new LabelNotFoundException("Label not found: id=" + id));
+
+        //이름 변경 시 중복 체크
+        if (request.getName() != null && !request.getName().equalsIgnoreCase(label.getName())) {
+            if (labelRepository.existsByNameIgnoreCase(request.getName())) {
+                throw new ValidationException(ErrorCode.DuplicateLabel,
+                        "Label with name " + request.getName() + " already exists");
+            }
+            label.setName(request.getName());
+        }
+
+        if (request.getColor() != null) {
+            label.setColor(request.getColor());
+        }
+
+        if (request.getDescription() != null) {
+            label.setDescription(request.getDescription());
+        }
+
+        Label updatedLabel = labelRepository.save(label);
+
+        return LabelResponse.from(updatedLabel);
+    }
+
+    //라벨 삭제
+    @Transactional
+    public void deleteLabel(Long id) {
+        if (!labelRepository.existsById(id)) {
+            throw new LabelNotFoundException("Label not found: id=" + id);
+        }
+        labelRepository.deleteById(id);
     }
 }
