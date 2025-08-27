@@ -1,6 +1,7 @@
 package com.example.issueDive.service;
 
 import com.example.issueDive.dto.CreateIssueRequest;
+import com.example.issueDive.dto.IssueFilterRequest;
 import com.example.issueDive.dto.IssueResponse;
 import com.example.issueDive.dto.UpdateIssueRequest;
 import com.example.issueDive.entity.Issue;
@@ -10,21 +11,27 @@ import com.example.issueDive.exception.NotFoundException;
 import com.example.issueDive.exception.ValidationException;
 import com.example.issueDive.repository.IssueRepository;
 import com.example.issueDive.repository.UserRepository;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import java.util.List;
 
 @ExtendWith(MockitoExtension.class) // DB나 외부 시스템에 독립적이도록 Mocking 활용
 public class IssueServiceTest {
 
+    // @Mock private JPAQueryFactory jpaQueryFactory;
     @Mock private IssueRepository issueRepository;
     @Mock private UserRepository userRepository;
 
@@ -83,6 +90,15 @@ public class IssueServiceTest {
         assertThrows(NotFoundException.class, () -> issueService.createIssue(request, authorId));
 
     }
+
+    /**
+     * 다중 조건 필터와 페이징이 적용된 이슈 조회 테스트
+     * -> 통합 테스트로 검증 (QueryDSL 코드를 모킹하는 것은 비효율적)
+     * --> IssueDiveApplicationTests.java 체크
+     */
+//    @Test
+//    void getFilteredIssues_withMultipleFilters_returnsPagedResults() {
+//    }
 
     /**
      * 이슈 조회 성공 테스트

@@ -37,7 +37,17 @@ public class IssueController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<Page<IssueResponse>>> getIssues(@Valid IssueFilterRequest filter) {
-        Page<IssueResponse> issue = issueService.getFilteredIssues(filter);
+        Page<IssueResponse> issue = issueService.getFilteredIssues(
+                new IssueFilterRequest(
+                        filter.status(),
+                        filter.authorId(),
+                        filter.assigneeId(),
+                        filter.labelIds(),
+                        filter.page() != null ? filter.page() : 0,
+                        filter.size() != null ? filter.size() : 10,
+                        filter.sort() != null ? filter.sort() : "createdAt",
+                        filter.order() != null ? filter.order() : "desc"
+                ));
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(issue));
     }
 

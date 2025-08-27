@@ -8,10 +8,10 @@ import java.util.List;
 public record IssueFilterRequest(
         @Pattern(regexp = "open|closed|OPEN|CLOSED") String status,
         Long authorId,
-        List<Long> labelIds,
         Long assigneeId,
-        @Min(0) int page,
-        @Min(1) int size,
+        List<Long> labelIds,
+        @Min(0) Integer page,
+        @Min(1) Integer size,
         @Pattern(regexp = "createdAt|updatedAt") String sort,
         @Pattern(regexp = "asc|desc|ASC|DESC") String order
 ) {}
