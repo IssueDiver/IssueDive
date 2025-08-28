@@ -8,7 +8,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     List<Comment> findAllByIssueIdWithAuthor(Long issueId);
 
-    long countByIssueId(Long issueId);
+    long countByIssue_Id(Long issueId);
 
 
 }

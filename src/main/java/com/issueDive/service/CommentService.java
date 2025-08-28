@@ -101,7 +101,7 @@ public class CommentService {
 
     @Transactional(readOnly = true)
     public CountCommentResponse countByIssue(Long issueId){
-        long count = commentRepository.countByIssueId(issueId);
+        long count = commentRepository.countByIssue_Id(issueId);
         return new CountCommentResponse(issueId, count);
     }
 
