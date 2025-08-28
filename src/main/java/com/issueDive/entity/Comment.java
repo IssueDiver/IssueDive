@@ -48,5 +48,5 @@ public class Comment {
                 columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
         private LocalDateTime updatedAt;
 
-        public void changeDescription(String content) { this.description = description; }
+        public void changeDescription(String description) { this.description = description; }
 }

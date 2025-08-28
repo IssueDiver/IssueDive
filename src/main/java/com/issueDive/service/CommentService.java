@@ -57,7 +57,7 @@ public class CommentService {
         issueRepository.findById(issueId)
                 .orElseThrow(() -> new NotFoundException("이슈를 찾을 수 없습니다."));
 
-        List<Comment> all = commentRepository.findAllByIssueIdWithAuthor(issueId);
+        List<Comment> all = commentRepository.findAllByIssueIdWithUser(issueId);
         return CommentResponse.fromAllToTree(all);
     }
 
@@ -101,7 +101,7 @@ public class CommentService {
 
     @Transactional(readOnly = true)
     public CountCommentResponse countByIssue(Long issueId){
-        long count = commentRepository.countByIssue_Id(issueId);
+        long count = commentRepository.countByIssueId(issueId);
         return new CountCommentResponse(issueId, count);
     }
 
