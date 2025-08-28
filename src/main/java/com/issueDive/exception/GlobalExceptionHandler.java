@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException e) {
+    public ResponseEntity<ErrorResponse> handleLabelNotFound(NotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of(ErrorCode.IssueNotFound, e.getMessage()));
     }
@@ -28,7 +28,7 @@ public class GlobalExceptionHandler {
     }
   
     @ExceptionHandler(LabelNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleCommentNotFound(LabelNotFoundException e) {
+    public ResponseEntity<ErrorResponse> handleLabelNotFound(LabelNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of(ErrorCode.LabelNotFound, e.getMessage()));
     }
