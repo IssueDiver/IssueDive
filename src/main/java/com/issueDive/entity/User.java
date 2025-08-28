@@ -30,19 +30,22 @@ public class User {
     @Column(nullable = false, length = 255)
     private String password;
 
-    @Column(name = "created_at",
-            updatable = false,
-            insertable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at",
-            insertable = false,
-            updatable = false)
+    // 앱에서 관리: 매 업데이트마다 갱신
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public User(String username, String email, String password){
-        this.username = username;
-        this.email = email;
-        this.password = password;
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

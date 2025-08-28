@@ -39,6 +39,8 @@ out/
 # Application Properties
 application.properties
 application-test.properties
+application-dev.properties
+
 .env
 .java-version
 logs/
