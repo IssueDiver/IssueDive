@@ -1,10 +1,8 @@
-package com.example.issueDive.repository;
-import com.example.issueDive.entity.Comment;
-import org.springframework.data.jpa.repository.EntityGraph;
+package com.issueDive.repository;
+import com.issueDive.entity.Comment;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
@@ -12,5 +10,5 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     long countByIssueId(Long issueId);
 
-    boolean existsByIdAndUser_Id(Long commentId, Long userId);
+
 }

@@ -1,8 +1,9 @@
-package com.example.issueDive.entity;
+package com.issueDive.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +39,14 @@ public class Comment {
         @Builder.Default
         @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
         private List<Comment> children = new ArrayList<>();
+
+        @Column(name = "created_at", updatable = false, insertable = false,
+                columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+        private LocalDateTime createdAt;
+
+        @Column(name = "updated_at", insertable = false,
+                columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
+        private LocalDateTime updatedAt;
 
         public void changeDescription(String content) { this.description = description; }
 }

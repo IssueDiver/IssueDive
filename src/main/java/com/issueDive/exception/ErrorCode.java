@@ -1,7 +1,7 @@
 package com.issueDive.exception;
 
 public enum ErrorCode {
-    ValidationError, InvalidQueryParam, Unauthorized, Forbidden, InternalServerError,
+    ValidationError, InvalidQueryParam, Unauthorized, Forbidden, BadRequest, InternalServerError,
     IssueNotFound, InvalidStatus,
 
     LabelNotFound, IssueLabelNotFound, DuplicateLabel,

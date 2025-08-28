@@ -1,4 +1,4 @@
-package com.example.issueDive.dto;
+package com.issueDive.dto;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
@@ -7,6 +7,6 @@ import lombok.Setter;
 @Setter
 public class CreateCommentRequest {
     @NotBlank
-    private String content;
+    private String description;
     private Long parentId;
 }
