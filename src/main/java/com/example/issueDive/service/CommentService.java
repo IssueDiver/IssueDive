@@ -1,10 +1,14 @@
 package com.example.issueDive.service;
 
-
-import com.example.issueDive.dto.CommentRequest;
 import com.example.issueDive.dto.CommentResponse;
+import com.example.issueDive.dto.CreateCommentRequest;
+import com.example.issueDive.dto.UpdateCommentRequest;
 import com.example.issueDive.entity.Comment;
+import com.example.issueDive.entity.Issue;
+import com.example.issueDive.entity.User;
 import com.example.issueDive.repository.CommentRepository;
+import com.example.issueDive.repository.IssueRepository;
+import com.example.issueDive.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,14 +21,14 @@ public class CommentService {
     private final IssueRepository issueRepository;
 
     @Transactional
-    public CommentResponse createComment(Long issueId, CommentRequest request, Long userId){
+    public CommentResponse createComment(Long issueId, CreateCommentRequest request, Long userId){
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다."));
         Issue issue = IssueRepository.findById(issueId)
                 .orElseThrow(() -> new CommentNotFoundException("댓글을 찾을 수 없습니다."));
 
         Comment.CommentBuilder commentBuilder = Comment.builder()
-                .description(request.getDecription())
+                .description(request.getDescription())
                 .user(user)
                 .issue(issue);
 
@@ -45,11 +49,11 @@ public class CommentService {
     }
 
     @Transactional
-    public CommentResponse updateComment(Long id, CommentRequest request, Long userId){
+    public CommentResponse updateComment(Long id, UpdateCommentRequest request, Long userId){
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new CommentNotFoundException("댓글을 찾을 수 없습니다."));
 
-        comment.setDescription(request.getDescription());
+        comment.changeDescription(request.getDescription());
         return CommentResponse.from(comment);
     }
 
@@ -59,6 +63,11 @@ public class CommentService {
                 .orElseThrow(() -> new CommentNotFoundException("댓글을 찾을 수 없습니다."));
 
         commentRepository.delete(comment);
+    }
+
+    @Transactional(readOnly = true)
+    public long countByIssue(Long issueId) {
+        return commentRepository.countByIssueId(issueId);
     }
 
 

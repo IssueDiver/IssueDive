@@ -1,8 +1,12 @@
 package com.example.issueDive.controller;
 
 import com.example.issueDive.dto.CommentResponse;
+import com.example.issueDive.dto.CreateCommentRequest;
+import com.example.issueDive.dto.UpdateCommentRequest;
 import com.example.issueDive.service.CommentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,27 +20,33 @@ public class CommentController {
 
     @GetMapping
     public ResponseEntity<List<CommentResponse>> getComment(@PathVariable Long issueId){
-
+        List<CommentResponse> tree = commentService.getTreeByIssue(issueId);
+        return ResponseEntity.ok(tree);
     }
 
     @PostMapping
-    public ResponseEntity<CommentResponse> createComment(){
+    public ResponseEntity<CommentResponse> createComment(@PathVariable Long issueId, @RequestBody @Valid CreateCommentRequest request){
 
+        CommentResponse created = commentService.createComment(issueId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PatchMapping("/{commentId}")
-    public ResponseEntity<CommentResponse> updateComment(){
-
+    public ResponseEntity<CommentResponse> updateComment(@PathVariable Long commentId, @RequestBody @Valid UpdateCommentRequest request){
+        CommentResponse updated = commentService.updateComment(commentId, request);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{commentId}")
-    public ResponseEntity<?> deleteComment(){
-
+    public ResponseEntity<?> deleteComment(@PathVariable Long commentId){
+        commentService.deleteComment(commentId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/count")
-    public  ResponseEntity<CommentCountResponse> countComment(){
-
+    public  ResponseEntity<CommentCountResponse> countComment(@PathVariable Long issueId){
+        long count = commentService.countByIssue(issueId);
+        return ResponseEntity.ok(count);
     }
 }
 //package com.BugJava.EduConnect.assignment.controller;

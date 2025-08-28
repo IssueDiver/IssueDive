@@ -9,8 +9,8 @@ import java.util.Optional;
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     List<Comment> findAllByIssueIdWithAuthor(Long issueId);
+
     long countByIssueId(Long issueId);
 
-    @EntityGraph(attributePaths = {"user", ""})
-    Optional<Comment> findById(Long id);
+    boolean existsByIdAndUser_Id(Long commentId, Long userId);
 }
