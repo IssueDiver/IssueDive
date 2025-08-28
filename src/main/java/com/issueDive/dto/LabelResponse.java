@@ -15,8 +15,8 @@ public class LabelResponse {
     private String name;
     private String color;
     private String description;
-    private LocalDateTime created_at;
-    private LocalDateTime updated_at;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public static LabelResponse from(Label label) {
 
@@ -25,8 +25,8 @@ public class LabelResponse {
                 .name(label.getName())
                 .color(label.getColor())
                 .description(label.getDescription())
-                .created_at(label.getCreatedAt())
-                .updated_at(label.getUpdatedAt())
+                .createdAt(label.getCreatedAt())
+                .updatedAt(label.getUpdatedAt())
                 .build();
     }
 }
