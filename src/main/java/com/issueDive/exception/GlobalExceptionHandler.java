@@ -83,10 +83,4 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(ErrorCode.IssueLabelNotFound, e.getMessage()));
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
-        return ResponseEntity.badRequest()
-                .body(ErrorResponse.of(ErrorCode.ValidationError, "입력 값이 올바르지 않습니다."));
-    }
-
 }
