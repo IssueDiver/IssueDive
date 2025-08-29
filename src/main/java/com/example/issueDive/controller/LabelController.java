@@ -1,10 +1,8 @@
 package com.example.issueDive.controller;
 
 
-import com.example.issueDive.dto.ApiResponse;
-import com.example.issueDive.dto.CreateLabelRequest;
-import com.example.issueDive.dto.LabelResponse;
-import com.example.issueDive.dto.UpdateLabelRequest;
+import com.example.issueDive.dto.*;
+import com.example.issueDive.service.IssueLabelService;
 import com.example.issueDive.service.LabelService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +17,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class LabelController {
     private final LabelService labelService;
+    private final IssueLabelService issueLabelService;
 
     //라벨 생성
     @PostMapping("/labels")
@@ -41,27 +40,43 @@ public class LabelController {
     }
 
     //단일 라벨 조회
-    @GetMapping("/labels/{id}")
-    public ResponseEntity<ApiResponse<LabelResponse>> getLabelById(@PathVariable Long id){
-        LabelResponse data = labelService.getLabel(id);
+    @GetMapping("/labels/{labelId}")
+    public ResponseEntity<ApiResponse<LabelResponse>> getLabelById(@PathVariable Long labelId){
+        LabelResponse data = labelService.getLabel(labelId);
 
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
     //라벨 수정
-    @PatchMapping("/labels/{id}")
+    @PatchMapping("/labels/{labelId}")
     public ResponseEntity<ApiResponse<LabelResponse>> updateLabel(
-            @PathVariable Long id,
+            @PathVariable Long labelId,
             @Valid @RequestBody UpdateLabelRequest request){
-        LabelResponse data = labelService.updateLabel(id, request);
+        LabelResponse data = labelService.updateLabel(labelId, request);
 
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
     //라벨 삭제
-    @DeleteMapping("/labels/{id}")
-    public ResponseEntity<ApiResponse<Map<String, String>>> deleteLabel(@PathVariable Long id){
-        labelService.deleteLabel(id);
-        return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "Label " + id + " deleted successfully")));
+    @DeleteMapping("/labels/{labelId}")
+    public ResponseEntity<ApiResponse<Map<String, String>>> deleteLabel(@PathVariable Long labelId){
+        labelService.deleteLabel(labelId);
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("message", "Label " + labelId + " deleted successfully")));
+    }
+
+    @PostMapping("/issues/{issueId}/labels")
+    public ResponseEntity<ApiResponse<IssueLabelsResponse>> addLabels(
+            @PathVariable Long issueId,
+            @RequestBody List<Long> labelIds) {
+        IssueLabelsResponse data = issueLabelService.addLabelsToIssue(issueId, labelIds);
+        return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    @DeleteMapping("/issues/{issueId}/labels/{labelId}")
+    public ResponseEntity<ApiResponse<LabelResponse>> deleteLabelFromIssue(
+            @PathVariable Long issueId,
+            @PathVariable Long labelId) {
+        LabelResponse data = issueLabelService.deleteLabelFromIssue(issueId, labelId);
+        return ResponseEntity.ok(ApiResponse.ok(data));
     }
 }

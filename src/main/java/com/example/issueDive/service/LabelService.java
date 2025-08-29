@@ -7,6 +7,7 @@ import com.example.issueDive.entity.Label;
 import com.example.issueDive.exception.ErrorCode;
 import com.example.issueDive.exception.LabelNotFoundException;
 import com.example.issueDive.exception.ValidationException;
+import com.example.issueDive.repository.IssueLabelRepository;
 import com.example.issueDive.repository.LabelRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,7 @@ import java.util.List;
 public class LabelService {
 
     private final LabelRepository labelRepository;
-
+    private final IssueLabelRepository issueLabelRepository;
     //라벨 생성
     @Transactional
     public LabelResponse createLabel(CreateLabelRequest request) {
@@ -90,6 +91,8 @@ public class LabelService {
         if (!labelRepository.existsById(id)) {
             throw new LabelNotFoundException("Label not found: id=" + id);
         }
+
+        issueLabelRepository.deleteByLabelId(id);
         labelRepository.deleteById(id);
     }
 }

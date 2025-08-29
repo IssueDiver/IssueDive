@@ -28,20 +28,20 @@ public class Label {
     @Column(length = 200)
     private String description;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime created_at;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-    @Column(nullable = false)
-    private LocalDateTime updated_at;
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
     @PrePersist
     public void prePersist() {
-        this.created_at = LocalDateTime.now();
-        this.updated_at = this.created_at;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = this.createdAt;
     }
 
     @PreUpdate
     public void preUpdate() {
-        this.updated_at = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 }
