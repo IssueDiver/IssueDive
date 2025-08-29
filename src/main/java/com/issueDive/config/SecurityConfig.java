@@ -27,6 +27,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(PUBLIC_URLS).permitAll() // 공개 URL은 모두 허용
                         .anyRequest().authenticated()             // 나머지는 인증 필요

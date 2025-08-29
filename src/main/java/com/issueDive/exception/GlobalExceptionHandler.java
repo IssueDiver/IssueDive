@@ -53,10 +53,4 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(ErrorCode.ValidationError, "입력 값이 올바르지 않습니다."));
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ErrorResponse.of(ErrorCode.InternalServerError, "서버 내부 오류가 발생했습니다."));
-    }
-
 }
