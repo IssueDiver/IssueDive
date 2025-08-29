@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -45,7 +46,7 @@ public class IssueServiceTest {
         Long authorId = 1L;
         Long assigneeId = 2L;
 
-        CreateIssueRequest request = new CreateIssueRequest("제목", "설명", assigneeId);
+        CreateIssueRequest request = new CreateIssueRequest("제목", "설명", assigneeId, List.of());
 
         User author = new User();
         author.setId(authorId);
@@ -78,7 +79,7 @@ public class IssueServiceTest {
 
         // given
         Long authorId = 99L;
-        CreateIssueRequest request = new CreateIssueRequest("제목", "설명", null);
+        CreateIssueRequest request = new CreateIssueRequest("제목", "설명", null, List.of());
         when(userRepository.findById(authorId)).thenReturn(Optional.empty());
 
         // when-then

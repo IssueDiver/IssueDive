@@ -15,11 +15,21 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-build-action@v2
 
       - name: Build Docker image
+        # GitHub Secrets를 환경 변수로 설정하고,
+        # docker build 명령어에 --build-arg로 전달합니다.
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          docker build -t issue-dive-app .
+          docker build -t issue-dive-app \
+            --build-arg DB_URL="$DB_URL" \
+            --build-arg DB_USER="$DB_USER" \
+            --build-arg DB_PASSWORD="$DB_PASSWORD" \
+            .
 
       - name: Run tests inside Docker container
         run: |

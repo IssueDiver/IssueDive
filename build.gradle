@@ -1,8 +1,25 @@
+// buildscript 블록
+// 플러그인 자체와, 플러그인이 사용할 MySQL 라이브러리를 함께 정의.
+buildscript {
+    repositories {
+        gradlePluginPortal()
+    }
+    dependencies {
+        def flywayVersion = "11.11.2"
+        classpath "org.flywaydb:flyway-gradle-plugin:${flywayVersion}"
+        classpath "org.flywaydb:flyway-mysql:${flywayVersion}"
+    }
+}
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.5'
     id 'io.spring.dependency-management' version '1.1.7'
+//    id 'org.flywaydb.flyway' version "11.11.2"
 }
+
+// buildscript에 정의한 플러그인 적용.
+apply plugin: 'org.flywaydb.flyway'
 
 group = 'com.issueDive'
 version = '0.0.1-SNAPSHOT'
@@ -41,6 +58,7 @@ dependencies {
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:mysql'
     testImplementation 'com.h2database:h2'
+//    flywayPlugin 'org.flywaydb:flyway-mysql' // flywayClean 같은 명령어 직접 사용 시 필요. 라이브러리 지정.
 
     // QueryDsl
     implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
@@ -60,4 +78,12 @@ clean{
 tasks.named('test') {
     useJUnitPlatform()
     jvmArgs '-Xshare:off'
+}
+
+// Flyway 설정
+flyway {
+    url = dbUrl
+    user = dbUser
+    password = dbPassword
+    cleanDisabled = false
 }

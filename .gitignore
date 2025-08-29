@@ -43,3 +43,4 @@ application-test.properties
 .env
 .java-version
 logs/
+gradle.properties

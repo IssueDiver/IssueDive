@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -33,9 +34,12 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS 설정
+                .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(PUBLIC_URLS).permitAll() // 공개 URL은 모두 허용
-                        .anyRequest().authenticated()             // 나머지는 인증 필요
+                        // 모든 요청(/**)을 허용 (임시로)
+                        .requestMatchers("/**").permitAll()
+//                        .requestMatchers(PUBLIC_URLS).permitAll() // 공개 URL은 모두 허용
+//                        .anyRequest().authenticated()             // 나머지는 인증 필요
                 )
                 .formLogin(formLogin -> formLogin             // 폼 로그인 사용
                         .defaultSuccessUrl("/")
@@ -53,11 +57,13 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // 프론트엔드 서버 주소 허용
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:5174"));
+//        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5174"));
         // 모든 HTTP 메서드 허용
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         // 모든 헤더 허용
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+//        configuration.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization"));
+        configuration.addAllowedHeader("*");
         // 자격 증명(쿠키 등) 허용
         configuration.setAllowCredentials(true);
 
