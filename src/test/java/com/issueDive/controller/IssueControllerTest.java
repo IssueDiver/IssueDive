@@ -1,6 +1,5 @@
 package com.issueDive.controller;
 
-import com.issueDive.controller.IssueController;
 import com.issueDive.dto.CreateIssueRequest;
 import com.issueDive.dto.IssueFilterRequest;
 import com.issueDive.dto.IssueResponse;

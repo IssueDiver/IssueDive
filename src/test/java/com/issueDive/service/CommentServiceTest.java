@@ -274,4 +274,21 @@ class CommentServiceTest {
         assertThrows(SecurityException.class,
                 () -> commentService.deleteComment(issueId, commentId, requesterId));
     }
+
+    @Test
+    @DisplayName("이슈의 댓글 개수 조회 - 성공")
+    void countByIssue_Success() {
+        // given
+        Long issueId = 1L;
+        long expectedCount = 5L;
+        when(commentRepository.countByIssueId(issueId)).thenReturn(expectedCount);
+
+        // when
+        var response = commentService.countByIssue(issueId);
+
+        // then
+        assertThat(response.getIssueId()).isEqualTo(issueId);
+        assertThat(response.getCount()).isEqualTo(expectedCount);
+        verify(commentRepository, times(1)).countByIssueId(issueId);
+    }
 }

@@ -2,6 +2,7 @@ package com.issueDive.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.issueDive.dto.CommentResponse;
+import com.issueDive.dto.CountCommentResponse;
 import com.issueDive.dto.CreateCommentRequest;
 import com.issueDive.dto.UpdateCommentRequest;
 import com.issueDive.exception.CommentNotFoundException;
@@ -181,5 +182,21 @@ class CommentControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("Forbidden"));
+    }
+
+    @Test
+    @DisplayName("댓글 개수 조회 - 성공")
+    void countComment_Success() throws Exception {
+        // given
+        long count = 10L;
+        when(commentService.countByIssue(issueId)).thenReturn(new CountCommentResponse(issueId, count));
+
+        // when & then
+        mockMvc.perform(get("/issues/{issueId}/comments/count", issueId))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.issueId").value(issueId))
+                .andExpect(jsonPath("$.data.count").value(count));
     }
 }
