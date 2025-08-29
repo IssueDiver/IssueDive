@@ -3,6 +3,7 @@ package com.issueDive.exception;
 import com.issueDive.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -55,5 +56,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleForbidden(SecurityException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ErrorResponse.of(ErrorCode.Forbidden, e.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(ErrorCode.BadRequest, e.getMessage()));
     }
 }
