@@ -36,8 +36,10 @@ out/
 ### VS Code ###
 .vscode/
 
-# Spring Boot
-*.yml
-*.yaml
+# Application Properties
+application.properties
+application-test.properties
 
-src/main/resources/application.properties
+.env
+.java-version
+logs/
