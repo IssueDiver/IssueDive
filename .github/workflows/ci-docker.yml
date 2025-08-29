@@ -1,11 +1,12 @@
 # 워크플로우의 이름
-name: IssueDive Docker CI
+name: IssueDive Docker CI Hard
 
 # 워크플로우가 언제 실행될지 정의
 on:
   push:
     branches: [ "dev" ] # dev 브랜치에 push될 때 실행
-  pull_request_target:  # Fork에서 보낸 PR도 공용 저장소의 Secrets에 접근할 수 있게 pull_request_target으로 변경함
+  pull_request:
+  # pull_request_target:  # Fork에서 보낸 PR도 공용 저장소의 Secrets에 접근할 수 있게 pull_request_target으로 변경함
     branches: [ "dev" ] # dev 브랜치로 Pull Request가 생성될 때 실행
 
 # 실행될 작업(Job)들을 정의
@@ -21,7 +22,8 @@ jobs:
         image: mysql:8
         # GitHub Secrets를 사용하여 DB를 설정합니다.
         env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          # MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: password
           MYSQL_DATABASE: issue_dive
         ports:
           - 3306:3306 # Runner의 3306 포트와 컨테이너의 3306 포트를 연결
@@ -44,8 +46,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
         # 'pull_request_target'을 사용할 때는 어떤 코드를 체크아웃할지 명시해야 합니다.
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
+        # with:
+        #   ref: ${{ github.event.pull_request.head.sha }}
 
       # 3. Docker 이미지 빌드
       # Dockerfile을 기반으로 애플리케이션을 빌드하여 Docker 이미지를 생성.
@@ -54,9 +56,9 @@ jobs:
         # GitHub Secrets를 환경 변수로 설정하고,
         # docker build 명령어에 --build-arg로 전달합니다.
         env:
-          DB_URL: ${{ secrets.DB_URL }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_URL: jdbc:mysql://mysql:3306/issue_dive?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+          DB_USER: root
+          DB_PASSWORD: password
         run: |
           docker build -t issue-dive-app \
             --build-arg DB_URL="$DB_URL" \
@@ -71,9 +73,12 @@ jobs:
           # URL - localhost: GitHub Actions가 services에 설정된 MySQL 컨테이너를 localhost로 연결
           # jdbc:mysql://localhost:3306/issue_dive?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
           # 그치만 Docker container 내부에서는 네트워크 별칭으로 접근하는게 맞음
-          SPRING_DATASOURCE_URL: ${{ secrets.DB_URL }}
-          SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USER }}
-          SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
+#          SPRING_DATASOURCE_URL: ${{ secrets.DB_URL }}
+#          SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USER }}
+#          SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/issue_dive?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: password
         run: |
           docker run --rm \
             -e SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL \

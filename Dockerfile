@@ -9,10 +9,12 @@ ARG DB_USER
 ARG DB_PASSWORD
 
 # gradle.properties 파일을 동적으로 생성합니다.
-RUN echo "dbUrl=${DB_URL}" >> gradle.properties
-RUN echo "dbUser=${DB_USER}" >> gradle.properties
-RUN echo "dbPassword=${DB_PASSWORD}" >> gradle.properties
-
+#RUN echo "dbUrl=${DB_URL}" >> gradle.properties
+#RUN echo "dbUser=${DB_USER}" >> gradle.properties
+#RUN echo "dbPassword=${DB_PASSWORD}" >> gradle.properties
+RUN echo "dbUrl=${DB_URL}" > gradle.properties && \
+    echo "dbUser=${DB_USER}" >> gradle.properties && \
+    echo "dbPassword=${DB_PASSWORD}" >> gradle.properties
 
 # Gradle 캐시 최적화를 위해 build.gradle과 settings.gradle 먼저 복사
 COPY build.gradle settings.gradle gradlew ./
