@@ -39,7 +39,7 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<UserResponseDTO>> login(@Valid @RequestBody LoginRequestDTO request){
-        UserResponseDTO user = userService.login(request.getEmail(), request.getPassword());
+        UserResponseDTO user = userService.login(request.getUsername(), request.getPassword());
         ApiResponse<UserResponseDTO> response = ApiResponse.ok(user);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
