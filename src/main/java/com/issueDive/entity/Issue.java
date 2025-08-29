@@ -22,7 +22,7 @@ public class Issue {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String title;
 
     @Column(columnDefinition = "TEXT")
@@ -30,7 +30,7 @@ public class Issue {
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "_status", nullable = false)
     private IssueStatus status = IssueStatus.OPEN;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -57,4 +57,17 @@ public class Issue {
             inverseJoinColumns = @JoinColumn(name = "label_id")
     )
     private Set<Label> labels = new HashSet<>();
+
+    @PrePersist
+    public void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
 }

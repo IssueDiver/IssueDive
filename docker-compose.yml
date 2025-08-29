@@ -7,10 +7,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: issue_dive
-      # 일반 사용자 추가하지 않거나 별도의 사용자명으로 변경
-      # 예를 들어 USER는 issueuser 등으로 변경 가능
-      # MYSQL_USER: issueuser
-      # MYSQL_PASSWORD: user_password
     ports:
       - "3306:3306"
     volumes:
@@ -22,7 +18,12 @@ services:
       retries: 5
 
   app:
-    build: .
+    build:
+      context: .
+      args:
+        - DB_URL=${SPRING_DATASOURCE_URL}
+        - DB_USER=${SPRING_DATASOURCE_USERNAME}
+        - DB_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
     container_name: issueDive-app
     depends_on:
       mysql:
@@ -34,8 +35,6 @@ services:
     ports:
       - "8080:8080"
     command: ./gradlew bootRun
-#    volumes:
-#      - ./:/app
     tty: true
 
 volumes:
