@@ -48,7 +48,7 @@ public class IssueService {
         }
 
         Issue issue = new Issue();
-        issue.setTitle(request.title());
+        issue.setTitle(request.title()); // not null ?
         issue.setDescription(request.description());
         issue.setAuthor(author);
         issue.setAssignee(assignee);
