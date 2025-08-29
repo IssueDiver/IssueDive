@@ -42,13 +42,20 @@ jobs:
             --build-arg DB_USER="$DB_USER" \
             --build-arg DB_PASSWORD="$DB_PASSWORD" \
             .
-
       # 4. Docker 컨테이너 안에서 테스트 실행
-      # 바로 위에서 성공적으로 빌드된 Docker 이미지를 실행하여,
-      # 그 안에서 Gradle 테스트를 실행. 빌드와 테스트 단계를 분리하여 명확성을 높임.
       - name: Run tests inside Docker container
+        # GitHub Secrets를 다시 한번 환경 변수로 가져옵니다.
+        env:
+          # Spring Boot는 이 환경 변수들을 자동으로 인식하여 DB 설정으로 사용합니다.
+          SPRING_DATASOURCE_URL: ${{ secrets.DB_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USER }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          docker run --rm issue-dive-app ./gradlew test
+          docker run --rm \
+            -e SPRING_DATASOURCE_URL \
+            -e SPRING_DATASOURCE_USERNAME \
+            -e SPRING_DATASOURCE_PASSWORD \
+            issue-dive-app ./gradlew test
 
 # --- 이전 방식 (더 이상 필요 없음) ---
 # 이제 모든 빌드와 테스트가 Docker 컨테이너 안에서 이루어지므로,
