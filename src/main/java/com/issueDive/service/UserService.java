@@ -14,6 +14,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -75,5 +77,12 @@ public class UserService {
             throw new UserNotFoundException(id);
         }
         userRepository.deleteById(id);
+    }
+
+    // 전체 사용자 목록 조회
+    public List<UserResponseDTO> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(u -> new UserResponseDTO(u.getId(), u.getUsername(), u.getEmail()))
+                .toList();
     }
 }

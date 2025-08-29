@@ -3,6 +3,7 @@ package com.issueDive.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 @Table(name = "label")
 public class Label {
-  
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

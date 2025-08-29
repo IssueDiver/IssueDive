@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 
 @RestController
 @RequestMapping("/auth")
@@ -64,5 +66,15 @@ public class AuthController {
         userService.deleteUser(id);
         ApiResponse<Void> response = ApiResponse.ok(null);
         return  new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    /**
+     * Read: 전체 사용자 목록 조회
+     * @return 공통 응답 포맷 + 사용자 DTO 리스트
+     */
+    @GetMapping("/users")
+    public ResponseEntity<ApiResponse<List<UserResponseDTO>>> getAllUsers() {
+        List<UserResponseDTO> users = userService.getAllUsers();
+        return ResponseEntity.ok(ApiResponse.ok(users));
     }
 }
