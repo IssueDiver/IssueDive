@@ -1,5 +1,5 @@
 # 워크플로우의 이름
-name: IssueDive CI
+name: IssueDive Docker CI
 
 # 워크플로우가 언제 실행될지 정의
 on:
@@ -24,8 +24,8 @@ jobs:
       # 2. Docker Buildx 설정
       # Docker 빌드 성능을 향상시키고 다양한 빌드 기능을 활성화하는 단계
       - name: Set up Docker Buildx
-        uses: docker/setup-build-action@v2
-        
+        uses: docker/setup-buildx-action@v2
+
       # 3. Docker 이미지 빌드
       # Dockerfile을 기반으로 애플리케이션을 빌드하여 Docker 이미지를 생성.
       # 이 단계에서 Gradle 빌드가 컨테이너 안에서 먼저 실행됨.
@@ -42,7 +42,7 @@ jobs:
             --build-arg DB_USER="$DB_USER" \
             --build-arg DB_PASSWORD="$DB_PASSWORD" \
             .
-            
+
       # 4. Docker 컨테이너 안에서 테스트 실행
       # 바로 위에서 성공적으로 빌드된 Docker 이미지를 실행하여,
       # 그 안에서 Gradle 테스트를 실행. 빌드와 테스트 단계를 분리하여 명확성을 높임.
