@@ -30,6 +30,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+          --network-alias mysql
 
     # 작업의 단계(Step)들을 정의
     steps:
@@ -68,12 +69,13 @@ jobs:
         env:
           # Spring Boot는 이 환경 변수들을 자동으로 인식하여 DB 설정으로 사용합니다.
           # URL - localhost: GitHub Actions가 services에 설정된 MySQL 컨테이너를 localhost로 연결
-          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/issue_dive?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+          # jdbc:mysql://localhost:3306/issue_dive?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+          # 그치만 Docker container 내부에서는 네트워크 별칭으로 접근하는게 맞음
+          SPRING_DATASOURCE_URL: ${{ secrets.DB_URL }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USER }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           docker run --rm \
-            --network host \
             -e SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL \
             -e SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME \
             -e SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD \
