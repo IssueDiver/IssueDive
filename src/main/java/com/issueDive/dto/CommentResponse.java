@@ -4,10 +4,7 @@ import com.issueDive.entity.Comment;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Getter
 @Setter
@@ -24,7 +21,21 @@ public class CommentResponse {
     private Long parentId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private List<CommentResponse> children;
+
+    @Builder.Default
+    private List<CommentResponse> children = new ArrayList<>();
+
+    // 방어적 추가 헬퍼
+    public void addChild(CommentResponse child) {
+        if (children == null) children = new ArrayList<>();
+        children.add(child);
+    }
+
+    // 널-세이프 getter
+    public List<CommentResponse> getChildren() {
+        if (children == null) children = new ArrayList<>();
+        return children;
+    }
 
     public static CommentResponse from(Comment comment){
         return CommentResponse.builder()
@@ -43,30 +54,28 @@ public class CommentResponse {
         Map<Long, CommentResponse> map = new LinkedHashMap<>();
         List<CommentResponse> roots = new ArrayList<>();
 
-        // 1) 모든 엔티티 → DTO 변환 & 인덱싱
+        // 1) 엔티티 → DTO 변환 & 인덱싱
         for (Comment c : comments) {
             map.put(c.getId(), from(c));
         }
 
         // 2) 부모-자식 연결
         for (Comment c : comments) {
-            Long parentId = (c.getParent() != null) ? c.getParent().getId() : null;
+            Long pId = (c.getParent() != null) ? c.getParent().getId() : null;
             CommentResponse dto = map.get(c.getId());
 
-            if (parentId == null) {
+            if (pId == null) {
                 roots.add(dto);
             } else {
-                CommentResponse parentDto = map.get(parentId);
-                if (parentDto != null) {
-                    parentDto.getChildren().add(dto);
+                CommentResponse parent = map.get(pId);
+                if (parent != null) {
+                    parent.addChild(dto);
                 } else {
-                    // 데이터 정합성 이슈 방어: 부모 DTO가 없으면 루트로 승격
+                    // 부모 누락 방어: 루트에 승격(정책에 맞게 조정 가능)
                     roots.add(dto);
                 }
             }
         }
         return roots;
     }
-
-
 }
