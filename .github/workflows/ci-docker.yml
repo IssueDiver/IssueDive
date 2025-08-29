@@ -93,3 +93,5 @@ jobs:
 #       # 4. Gradle로 빌드 및 테스트 실행
 #       - name: Build with Gradle
 #         run: ./gradlew build --no-daemon
+
+# re-run test용 주석 추가
