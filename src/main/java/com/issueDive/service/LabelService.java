@@ -8,6 +8,7 @@ import com.issueDive.exception.ErrorCode;
 import com.issueDive.exception.LabelNotFoundException;
 import com.issueDive.exception.ValidationException;
 import com.issueDive.repository.LabelRepository;
+import com.issueDive.repository.IssueLabelRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +20,7 @@ import java.util.List;
 public class LabelService {
 
     private final LabelRepository labelRepository;
-
+    private final IssueLabelRepository issueLabelRepository;
     //라벨 생성
     @Transactional
     public LabelResponse createLabel(CreateLabelRequest request) {
@@ -90,6 +91,8 @@ public class LabelService {
         if (!labelRepository.existsById(id)) {
             throw new LabelNotFoundException("Label not found: id=" + id);
         }
+
+        issueLabelRepository.deleteByLabelId(id);
         labelRepository.deleteById(id);
     }
 }
