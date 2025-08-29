@@ -14,6 +14,23 @@ jobs:
     name: Build and Test # 작업의 이름 (GitHub Actions UI에 표시됨)
     runs-on: ubuntu-latest # 작업을 실행할 가상 머신 환경 (Ubuntu 최신 버전)
 
+    # 0. DB 서비스를 여기에 정의합니다.
+    # 이 작업(Job)이 실행되는 동안 MySQL 컨테이너를 함께 실행합니다.
+    services:
+      mysql:
+        image: mysql:8
+        # GitHub Secrets를 사용하여 DB를 설정합니다.
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MYSQL_DATABASE: issue_dive
+        ports:
+          - 3306:3306 # Runner의 3306 포트와 컨테이너의 3306 포트를 연결
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     # 작업의 단계(Step)들을 정의
     steps:
       # 1. 소스 코드 체크아웃
@@ -47,11 +64,13 @@ jobs:
         # GitHub Secrets를 다시 한번 환경 변수로 가져옵니다.
         env:
           # Spring Boot는 이 환경 변수들을 자동으로 인식하여 DB 설정으로 사용합니다.
-          SPRING_DATASOURCE_URL: ${{ secrets.DB_URL }}
+          # URL - localhost: GitHub Actions가 services에 설정된 MySQL 컨테이너를 localhost로 연결
+          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/issue_dive?useSSL=false
           SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USER }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           docker run --rm \
+            --network host \
             -e SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL \
             -e SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME \
             -e SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD \
