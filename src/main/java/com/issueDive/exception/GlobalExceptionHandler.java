@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -26,10 +27,35 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of(ErrorCode.InternalServerError, e.getMessage()));
     }
-  
+
     @ExceptionHandler(LabelNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleLabelNotFound(LabelNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of(ErrorCode.LabelNotFound, e.getMessage()));
+
+    }
+    @ExceptionHandler(BaseException.class)
+    public ResponseEntity<ErrorResponse> handleBaseException(BaseException ex) {
+        HttpStatus status = switch (ex.getErrorCode()) {
+            case UserNotFound -> HttpStatus.NOT_FOUND;
+            case DuplicateEmail -> HttpStatus.CONFLICT;
+            case AuthenticationFailed -> HttpStatus.UNAUTHORIZED;
+            default -> HttpStatus.BAD_REQUEST;
+        };
+
+        return ResponseEntity.status(status)
+                .body(ErrorResponse.of(ex.getErrorCode(), ex.getMessage()));
+    }
+
+    @ExceptionHandler(IssueLabelNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleIssueLabelNotFound(IssueLabelNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of(ErrorCode.IssueLabelNotFound, e.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
+        return ResponseEntity.badRequest()
+                .body(ErrorResponse.of(ErrorCode.ValidationError, "입력 값이 올바르지 않습니다."));
     }
 }

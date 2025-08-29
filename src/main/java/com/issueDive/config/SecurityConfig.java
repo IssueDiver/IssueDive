@@ -27,28 +27,23 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",
-            "/auth/signup"
+            "/auth/**"
     };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS 설정
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         // 모든 요청(/**)을 허용 (임시로)
-                        .requestMatchers("/**").permitAll()
+                        .anyRequest().permitAll()   // 개발 단계에서는 전체 허용
 //                        .requestMatchers(PUBLIC_URLS).permitAll() // 공개 URL은 모두 허용
 //                        .anyRequest().authenticated()             // 나머지는 인증 필요
                 )
-                .formLogin(formLogin -> formLogin             // 폼 로그인 사용
-                        .defaultSuccessUrl("/")
-                        .permitAll()
-                )
-                .logout(logout -> logout                      // 로그아웃 사용
-                        .logoutSuccessUrl("/login")
-                        .invalidateHttpSession(true)
-                );
+                .formLogin(formLogin -> formLogin.disable()) // 폼 로그인 비활성화 (필요 시)
+                .logout(logout -> logout.disable());        // 로그아웃 비활성화 (필요 시)
         return http.build();
     }
 
