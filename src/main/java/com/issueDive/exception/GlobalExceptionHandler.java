@@ -47,15 +47,40 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(ex.getErrorCode(), ex.getMessage()));
     }
 
+    @ExceptionHandler(CommentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCommentNotFound(CommentNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of(ErrorCode.CommentNotFound, e.getMessage()));
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of(ErrorCode.UserNotFound, e.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(ErrorCode.BadRequest, e.getMessage()));
+    }
+
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ErrorResponse> handleForbidden(SecurityException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponse.of(ErrorCode.Forbidden, e.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(ErrorCode.BadRequest, e.getMessage()));
+    }
+
     @ExceptionHandler(IssueLabelNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleIssueLabelNotFound(IssueLabelNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of(ErrorCode.IssueLabelNotFound, e.getMessage()));
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
-        return ResponseEntity.badRequest()
-                .body(ErrorResponse.of(ErrorCode.ValidationError, "입력 값이 올바르지 않습니다."));
-    }
 }

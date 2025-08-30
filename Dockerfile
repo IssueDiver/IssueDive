@@ -1,29 +1,21 @@
-# 1. 빌드 스테이지
-FROM gradle:8.14.3-jdk17 AS builder
+# 1. 빌드 및 테스트 스테이지
+FROM gradle:8.8.0-jdk17 AS builder
 
 WORKDIR /app
 
-# build-arg를 받기 위한 ARG 선언을 추가합니다.
-ARG DB_URL
-ARG DB_USER
-ARG DB_PASSWORD
-
-# gradle.properties 파일을 동적으로 생성합니다.
-RUN echo "dbUrl=${DB_URL}" >> gradle.properties
-RUN echo "dbUser=${DB_USER}" >> gradle.properties
-RUN echo "dbPassword=${DB_PASSWORD}" >> gradle.properties
-
-
-# Gradle 캐시 최적화를 위해 build.gradle과 settings.gradle 먼저 복사
+# Gradle 캐시 최적화를 위해 의존성 관련 파일 먼저 복사
 COPY build.gradle settings.gradle gradlew ./
 COPY gradle ./gradle
 
-# 의존성 다운로드
+# 의존성 다운로드 (네트워크를 사용하는 단계이므로 먼저 실행)
 RUN ./gradlew --no-daemon dependencies
 
-# 나머지 소스 복사 및 빌드
+# 전체 소스 복사
 COPY src ./src
-RUN ./gradlew assemble --no-daemon -Dspring.profiles.active=test
+
+# assemble 대신 build 명령어를 사용해 테스트까지 함께 실행합니다.
+# Spring Boot의 테스트 프로필을 활성화하여 H2 DB를 사용하도록 합니다.
+RUN ./gradlew build --no-daemon -Dspring.profiles.active=test
 
 
 # 2. 실행 스테이지
@@ -31,9 +23,8 @@ FROM openjdk:17-jdk-slim
 
 WORKDIR /app
 
-# 빌드 산출물을 복사
+# 빌드 산출물(테스트가 통과된)을 복사
 COPY --from=builder /app/build/libs/*.jar app.jar
 
-# 컨테이너 실행 시
+# 컨테이너 실행
 ENTRYPOINT ["java", "-jar", "app.jar"]
-

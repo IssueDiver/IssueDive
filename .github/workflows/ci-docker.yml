@@ -1,100 +1,24 @@
-# 워크플로우의 이름
-name: IssueDive Docker CI
+name: IssueDive Docker CI New
 
-# 워크플로우가 언제 실행될지 정의
 on:
   push:
-    branches: [ "dev" ] # dev 브랜치에 push될 때 실행
-  pull_request_target:  # Fork에서 보낸 PR도 공용 저장소의 Secrets에 접근할 수 있게 pull_request_target으로 변경함
-    branches: [ "dev" ] # dev 브랜치로 Pull Request가 생성될 때 실행
+    branches: [ "dev" ]
+  pull_request:
+    branches: [ "dev" ]
 
-# 실행될 작업(Job)들을 정의
 jobs:
-  build-and-test: # 작업의 ID
-    name: Build and Test # 작업의 이름 (GitHub Actions UI에 표시됨)
-    runs-on: ubuntu-latest # 작업을 실행할 가상 머신 환경 (Ubuntu 최신 버전)
-
-    # 0. DB 서비스를 여기에 정의합니다.
-    # 이 작업(Job)이 실행되는 동안 MySQL 컨테이너를 함께 실행합니다.
-    services:
-      mysql:
-        image: mysql:8
-        # GitHub Secrets를 사용하여 DB를 설정합니다.
-        env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          MYSQL_DATABASE: issue_dive
-        ports:
-          - 3306:3306 # Runner의 3306 포트와 컨테이너의 3306 포트를 연결
-        options: >-
-          --health-cmd "mysqladmin ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    # 작업의 단계(Step)들을 정의
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
     steps:
-      # 1. 소스 코드 체크아웃
-      # GitHub Actions Runner가 우리 저장소의 코드에 접근할 수 있도록 내려받는 단계
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      # 2. Docker Buildx 설정
-      # Docker 빌드 성능을 향상시키고 다양한 빌드 기능을 활성화하는 단계
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-        # 'pull_request_target'을 사용할 때는 어떤 코드를 체크아웃할지 명시해야 합니다.
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
 
-      # 3. Docker 이미지 빌드
-      # Dockerfile을 기반으로 애플리케이션을 빌드하여 Docker 이미지를 생성.
-      # 이 단계에서 Gradle 빌드가 컨테이너 안에서 먼저 실행됨.
-      - name: Build Docker image
-        # GitHub Secrets를 환경 변수로 설정하고,
-        # docker build 명령어에 --build-arg로 전달합니다.
-        env:
-          DB_URL: ${{ secrets.DB_URL }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      - name: Build and Test with Docker
+        # Docker 빌드 과정에서 Gradle 테스트가 실행됩니다.
+        # 테스트가 실패하면 빌드도 실패하므로 CI가 중단됩니다.
         run: |
-          docker build -t issue-dive-app \
-            --build-arg DB_URL="$DB_URL" \
-            --build-arg DB_USER="$DB_USER" \
-            --build-arg DB_PASSWORD="$DB_PASSWORD" \
-            .
-      # 4. Docker 컨테이너 안에서 테스트 실행
-      - name: Run tests inside Docker container
-        # GitHub Secrets를 다시 한번 환경 변수로 가져옵니다.
-        env:
-          # Spring Boot는 이 환경 변수들을 자동으로 인식하여 DB 설정으로 사용합니다.
-          # URL - localhost: GitHub Actions가 services에 설정된 MySQL 컨테이너를 localhost로 연결
-          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/issue_dive?useSSL=false
-          SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USER }}
-          SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        run: |
-          docker run --rm \
-            --network host \
-            -e SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL \
-            -e SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME \
-            -e SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD \
-            issue-dive-app ./gradlew test
-
-# --- 이전 방식 (더 이상 필요 없음) ---
-# 이제 모든 빌드와 테스트가 Docker 컨테이너 안에서 이루어지므로,
-# GitHub Actions Runner에 직접 Java를 설치하거나 gradlew에 실행 권한을 줄 필요가 없습니다.
-#       # 2. JDK 17 설치
-#       - name: Set up JDK 17
-#         uses: actions/setup-java@v4
-#         with:
-#           java-version: '17'
-#           distribution: 'temurin'
-
-#       # 3. gradlew 파일에 실행 권한 부여
-#       - name: Grant execute permission for gradlew
-#         run: chmod +x ./gradlew
-
-#       # 4. Gradle로 빌드 및 테스트 실행
-#       - name: Build with Gradle
-#         run: ./gradlew build --no-daemon
-
-# re-run test용 주석 추가
+          docker build -t issue-dive-app .
