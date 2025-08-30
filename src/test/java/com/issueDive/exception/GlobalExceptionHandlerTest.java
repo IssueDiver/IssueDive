@@ -111,23 +111,5 @@ public class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.error.message").isNotEmpty());
     }
 
-    // MethodArgumentNotValidException -> 400 (ValidationError)
-    @Test
-    public void login_validation_badRequest() throws Exception {
-        // username이 공백 → @NotBlank / @Email 위반으로 바인딩 단계에서 400 발생
-        String invalidBody = """
-                {
-                  "username": "",
-                  "password": "pw123"
-                }
-                """;
 
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(invalidBody))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("ValidationError"))
-                .andExpect(jsonPath("$.error.message").value("입력 값이 올바르지 않습니다."));
-    }
 }

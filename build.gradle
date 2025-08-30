@@ -84,8 +84,12 @@ tasks.named('test') {
 
 // Flyway 설정
 flyway {
-    url = dbUrl
-    user = dbUser
-    password = dbPassword
-    cleanDisabled = false
+    // project.hasProperty()를 사용해 'dbUrl' 프로퍼티가 있을 때만 설정을 적용합니다.
+    // 이렇게 하면 CI 환경처럼 DB 정보가 없을 때 이 블록을 건너뛰게 됩니다.
+    if (project.hasProperty('dbUrl')) {
+        url = dbUrl
+        user = dbUser
+        password = dbPassword
+    }
+    locations = ['filesystem:src/main/resources/db/migration']
 }
