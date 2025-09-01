@@ -9,6 +9,7 @@ import com.issueDive.entity.User;
 import com.issueDive.exception.NotFoundException;
 import com.issueDive.exception.ValidationException;
 import com.issueDive.repository.IssueRepository;
+import com.issueDive.repository.LabelRepository;
 import com.issueDive.repository.UserRepository;
 import com.issueDive.service.IssueService;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,8 @@ public class IssueServiceTest {
     // @Mock private JPAQueryFactory jpaQueryFactory;
     @Mock private IssueRepository issueRepository;
     @Mock private UserRepository userRepository;
+    @Mock private LabelRepository labelRepository;
+
 
     @InjectMocks
     private IssueService issueService;
