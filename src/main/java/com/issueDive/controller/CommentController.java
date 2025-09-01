@@ -24,20 +24,27 @@ public class CommentController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<CommentResponse>> createComment(@PathVariable Long issueId, @RequestBody @Valid CreateCommentRequest request
-                                                        ,@RequestHeader("X-USER-ID") Long userId){
-
+//                                                        ,@RequestHeader("X-USER-ID") Long userId){
+    ){
+        Long userId = 1L; // 임시 사용자 ID // JWT 기능 구현 완료 시 변경
         CommentResponse created = commentService.createComment(issueId, request, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(created));
     }
 
     @PatchMapping("/{commentId}")
-    public ResponseEntity<ApiResponse<CommentResponse>> updateComment(@PathVariable Long issueId, @PathVariable Long commentId, @RequestBody @Valid UpdateCommentRequest request, @RequestHeader("X-USER-ID") Long userId){
+    public ResponseEntity<ApiResponse<CommentResponse>> updateComment(@PathVariable Long issueId, @PathVariable Long commentId, @RequestBody @Valid UpdateCommentRequest request
+//            , @RequestHeader("X-USER-ID") Long userId){
+    ){
+        Long userId = 1L; // 임시 사용자 ID // JWT 기능 구현 완료 시 변경
         CommentResponse updated = commentService.updateComment(issueId, commentId, request, userId);
         return ResponseEntity.ok(ApiResponse.ok(updated));
     }
 
     @DeleteMapping("/{commentId}")
-    public ResponseEntity<?> deleteComment(@PathVariable Long issueId, @PathVariable Long commentId, @RequestHeader("X-USER-ID") Long userId){
+    public ResponseEntity<?> deleteComment(@PathVariable Long issueId, @PathVariable Long commentId
+//            , @RequestHeader("X-USER-ID") Long userId){
+    ){
+        Long userId = 1L; // 임시 사용자 ID // JWT 기능 구현 완료 시 변경
         commentService.deleteComment(issueId, commentId, userId);
         return ResponseEntity.noContent().build();
     }
