@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "comments")
+@Table(name = "comment")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -25,7 +25,7 @@ public class Comment {
         private Issue issue;
 
         @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "user_id", nullable = false)
+        @JoinColumn(name = "author_id", nullable = false)
         private User user;
 
         @Lob
@@ -49,4 +49,18 @@ public class Comment {
         private LocalDateTime updatedAt;
 
         public void changeDescription(String description) { this.description = description; }
+
+
+        @PrePersist
+        public void prePersist() {
+                LocalDateTime now = LocalDateTime.now();
+                this.createdAt = now;
+                this.updatedAt = now;
+        }
+
+        @PreUpdate
+        public void preUpdate() {
+                this.updatedAt = LocalDateTime.now();
+        }
+
 }
