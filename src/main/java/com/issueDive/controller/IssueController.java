@@ -64,10 +64,22 @@ public class IssueController {
     /**
      * Update
      * @param id 수정할 이슈 id
-     * @param request title, description, assignee(uid)
+     * @param request title, description, assignee(uid), labelIds
      * @return 공통 응답 포맷 + 수정된 이슈 dto
      */
     @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<IssueResponse>> patchIssue(@PathVariable Long id,
+                                                                  @RequestBody UpdateIssueRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(issueService.updateIssue(id, request)));
+    }
+
+    /**
+     * Update (부분 수정)
+     * @param id 수정할 이슈 id
+     * @param request title, description, assigneeId, labelIds
+     * @return 공통 응답 포맷 + 수정된 이슈 dto
+     */
+    @PatchMapping("/{id}")
     public ResponseEntity<ApiResponse<IssueResponse>> updateIssue(@PathVariable Long id,
                                                                   @RequestBody UpdateIssueRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(issueService.updateIssue(id, request)));
