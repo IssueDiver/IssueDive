@@ -1,11 +1,18 @@
 package com.issueDive.exception;
 
 import com.issueDive.dto.ErrorResponse;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+
+import javax.naming.AuthenticationException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -81,6 +88,60 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIssueLabelNotFound(IssueLabelNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of(ErrorCode.IssueLabelNotFound, e.getMessage()));
+    }
+
+    /**
+     * 9월1일 변경 - JWT 토큰 만료 예외 처리
+     */
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<ErrorResponse> handleJwtExpired(ExpiredJwtException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ErrorResponse.of(ErrorCode.AuthenticationFailed, "JWT 토큰이 만료되었습니다. 다시 로그인해주세요."));
+    }
+
+    /**
+     * 9월1일 변경 - JWT 토큰 형식 오류 예외 처리
+     */
+    @ExceptionHandler(MalformedJwtException.class)
+    public ResponseEntity<ErrorResponse> handleJwtMalformed(MalformedJwtException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ErrorResponse.of(ErrorCode.AuthenticationFailed, "잘못된 형식의 JWT 토큰입니다."));
+    }
+
+    /**
+     * 9월1일 변경 - JWT 지원되지 않는 토큰 예외 처리
+     */
+    @ExceptionHandler(UnsupportedJwtException.class)
+    public ResponseEntity<ErrorResponse> handleJwtUnsupported(UnsupportedJwtException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ErrorResponse.of(ErrorCode.AuthenticationFailed, "지원되지 않는 JWT 토큰입니다."));
+    }
+
+    /**
+     * 9월1일 변경 - Spring Security 인증 실패 예외 처리
+     */
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ErrorResponse.of(ErrorCode.AuthenticationFailed, "로그인에 실패했습니다. 이메일 또는 비밀번호를 확인해주세요."));
+    }
+
+    /**
+     * 9월1일 변경 - Spring Security 일반 인증 예외 처리
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ErrorResponse.of(ErrorCode.AuthenticationFailed, "인증이 필요합니다. JWT 토큰을 확인해주세요."));
+    }
+
+    /**
+     * 9월1일 변경 - Spring Security 권한 부족 예외 처리
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponse.of(ErrorCode.Forbidden, "접근 권한이 없습니다."));
     }
 
 }
