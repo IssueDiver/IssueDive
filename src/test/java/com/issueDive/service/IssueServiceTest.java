@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -153,7 +154,7 @@ public class IssueServiceTest {
         Issue existing = Issue.builder().id(issueId).title("원래 제목").description("원래 설명").author(author).build();
 
         Long newAssigneeId = 3L;
-        UpdateIssueRequest request = new UpdateIssueRequest("수정된 제목", "수정된 설명", newAssigneeId);
+        UpdateIssueRequest request = new UpdateIssueRequest("수정된 제목", "수정된 설명", newAssigneeId, new ArrayList<>());
         User newAssignee = User.builder().id(newAssigneeId).build();
 
         when(issueRepository.findById(issueId)).thenReturn(Optional.of(existing));
@@ -179,7 +180,7 @@ public class IssueServiceTest {
     void updateIssue_notFound() {
         // given
         when(issueRepository.findById(anyLong())).thenReturn(Optional.empty());
-        UpdateIssueRequest request = new UpdateIssueRequest("제목", "설명", null);
+        UpdateIssueRequest request = new UpdateIssueRequest("제목", "설명", null, new ArrayList<>());
 
         // when-then
         assertThrows(NotFoundException.class, () -> issueService.updateIssue(999L, request));
