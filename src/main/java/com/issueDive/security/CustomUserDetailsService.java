@@ -2,6 +2,7 @@ package com.issueDive.security;
 
 import com.issueDive.entity.User;
 import com.issueDive.repository.UserRepository;
+import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CustomUserDetailsService implements UserDetailsService{
+
     private final UserRepository userRepository;
 
     @Override
