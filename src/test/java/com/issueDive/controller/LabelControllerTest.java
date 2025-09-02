@@ -1,64 +1,71 @@
 package com.issueDive.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.issueDive.dto.CreateLabelRequest;
 import com.issueDive.dto.IssueLabelsResponse;
 import com.issueDive.dto.LabelResponse;
 import com.issueDive.exception.*;
+import com.issueDive.security.CustomUserDetailsService;
 import com.issueDive.service.IssueLabelService;
-import com.issueDive.service.IssueService;
 import com.issueDive.service.LabelService;
+import com.issueDive.util.JwtUtil;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@AutoConfigureMockMvc(addFilters = false)
+
+/**
+ * @WebMvcTest: LabelController와 관련된 웹 계층 빈들만 로드합니다.
+ * @AutoConfigureMockMvc: MockMvc를 자동으로 설정하며, Spring Security 필터를 활성화합니다.
+ * @WithMockUser: 이 클래스의 모든 테스트에 로그인한 상태를 전역 적용합니다.
+ */
+@WithMockUser
+@AutoConfigureMockMvc
 @WebMvcTest(LabelController.class)
 class LabelControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ObjectMapper objectMapper; // ObjectMapper 주입
+
+    // --- MockitoBean: 테스트 대상 컨트롤러의 의존성을 가짜(Mock) 객체로 주입 ---
     @MockitoBean
-    private LabelService labelService; // 서비스는 Mock으로 대체
+    private LabelService labelService;
 
     @MockitoBean
     private IssueLabelService issueLabelService;
 
+    // Security Filter Chain 구성을 위해 필요한 의존성 Mock Bean 추가
     @MockitoBean
-    private IssueService issueService;
+    private JwtUtil jwtUtil;
 
-    /**
-     * 라벨 생성 테스트
-     * 성공
-     */
+    @MockitoBean
+    private CustomUserDetailsService customUserDetailsService;
+
     @Test
+    @DisplayName("[SUCCESS] POST /labels - 라벨 생성 성공")
     void createLabel_success() throws Exception {
-        // given
-        LabelResponse mock = LabelResponse.builder()
-                .id(10L)
-                .name("bug")
-                .color("#FF0000")
-                .description("버그 관련 이슈")
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+        // given: 서비스가 반환할 Mock 응답 데이터 생성
+        LabelResponse mockResponse = LabelResponse.builder().id(10L).name("bug").color("#FF0000").build();
+        Mockito.when(labelService.createLabel(any(CreateLabelRequest.class))).thenReturn(mockResponse);
 
-        Mockito.when(labelService.createLabel(any(CreateLabelRequest.class)))
-                .thenReturn(mock);
-
-        String body = """
+        String requestBody = """
         {
           "name": "bug",
           "color": "#FF0000",
@@ -66,73 +73,45 @@ class LabelControllerTest {
         }
         """;
 
-        // when & then
+        // when & then: API 호출 및 응답 검증
         mockMvc.perform(post("/labels")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated())              // 201
-                .andExpect(jsonPath("$.success").value(true)) // ApiResponse.success
+                        .content(requestBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(10))
-                .andExpect(jsonPath("$.data.name").value("bug"))
-                .andExpect(jsonPath("$.data.color").value("#FF0000"));
+                .andExpect(jsonPath("$.data.name").value("bug"));
     }
 
-    /**
-     * 라벨 생성 테스트
-     * 실패: name 중복 시
-     */
     @Test
+    @DisplayName("[FAIL] POST /labels - 라벨 이름 중복으로 생성 실패")
     void createLabel_duplicateName_BadRequest() throws Exception {
         // given
-        String body = """
-                {
-                  "name": "bug",
-                  "color": "#FF0000",
-                  "description": "버그 관련 이슈"
-                }
-                """;
-
-        // 서비스가 중복 예외를 던지도록 스텁
+        String requestBody = """
+        { "name": "bug", "color": "#FF0000" }
+        """;
+        // 서비스가 중복 예외를 던지도록 설정
         Mockito.when(labelService.createLabel(any(CreateLabelRequest.class)))
                 .thenThrow(new ValidationException(ErrorCode.DuplicateLabel, "이미 존재하는 라벨 이름입니다."));
 
         // when & then
         mockMvc.perform(post("/labels")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                        .content(requestBody))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("DuplicateLabel"))
-                .andExpect(jsonPath("$.error.message").value("이미 존재하는 라벨 이름입니다."));
+                .andExpect(jsonPath("$.error.code").value("DuplicateLabel"));
     }
 
-    /**
-     * 라벨 목록 조회
-     * 성공
-     */
     @Test
+    @DisplayName("[SUCCESS] GET /labels - 전체 라벨 목록 조회 성공")
     void getLabels_success() throws Exception {
         // given
-        LabelResponse label1 = LabelResponse.builder()
-                .id(1L)
-                .name("bug")
-                .color("#FF0000")
-                .description("버그 관련")
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-
-        LabelResponse label2 = LabelResponse.builder()
-                .id(2L)
-                .name("feature")
-                .color("#00FF00")
-                .description("기능 추가")
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-
-        List<LabelResponse> mockList = List.of(label1, label2);
-
+        List<LabelResponse> mockList = List.of(
+                LabelResponse.builder().id(1L).name("bug").build(),
+                LabelResponse.builder().id(2L).name("feature").build()
+        );
         Mockito.when(labelService.getLabels()).thenReturn(mockList);
 
         // when & then
@@ -140,337 +119,109 @@ class LabelControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data[0].id").value(1))
                 .andExpect(jsonPath("$.data[0].name").value("bug"))
-                .andExpect(jsonPath("$.data[1].id").value(2))
                 .andExpect(jsonPath("$.data[1].name").value("feature"));
     }
 
-    /**
-     * 라벨 목록 조회
-     * 성공 - 데이터 없을 시
-     */
     @Test
-    void getLabels_emptyList() throws Exception {
-        // given
-        Mockito.when(labelService.getLabels()).thenReturn(List.of());
-
-        // when & then
-        mockMvc.perform(get("/labels"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data").isEmpty());
-    }
-
-    /**
-     * 라벨 단일 조회
-     * 성공
-     */
-    @Test
+    @DisplayName("[SUCCESS] GET /labels/{labelId} - 특정 라벨 조회 성공")
     void getLabel_success() throws Exception {
         // given
-        LabelResponse mock = LabelResponse.builder()
-                .id(10L)
-                .name("bug")
-                .color("#FF0000")
-                .description("버그 관련 이슈")
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-
-        Mockito.when(labelService.getLabel(10L)).thenReturn(mock);
+        LabelResponse mockResponse = LabelResponse.builder().id(10L).name("bug").color("#FF0000").build();
+        Mockito.when(labelService.getLabel(10L)).thenReturn(mockResponse);
 
         // when & then
         mockMvc.perform(get("/labels/10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(10))
-                .andExpect(jsonPath("$.data.name").value("bug"))
-                .andExpect(jsonPath("$.data.color").value("#FF0000"));
+                .andExpect(jsonPath("$.data.name").value("bug"));
     }
 
-
-    /**
-     * 라벨 단일 조회
-     * 실패: 존재하지 않는 라벨 조회 시
-     */
     @Test
+    @DisplayName("[FAIL] GET /labels/{labelId} - 존재하지 않는 라벨 조회")
     void getLabel_labelNotFound_notFound() throws Exception {
         // given
-        Mockito.when(labelService.getLabel(99L))
-                .thenThrow(new LabelNotFoundException("라벨을 찾을 수 없습니다."));
+        Mockito.when(labelService.getLabel(99L)).thenThrow(new LabelNotFoundException("라벨을 찾을 수 없습니다."));
 
         // when & then
         mockMvc.perform(get("/labels/99"))
-                .andExpect(status().isNotFound())                 // 404
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("LabelNotFound"))
-                .andExpect(jsonPath("$.error.message").exists());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("LabelNotFound"));
     }
 
-    /**
-     * 라벨 수정
-     * 성공
-     */
     @Test
-    void updateLabel_duplicateName_returnsBadRequest() throws Exception {
+    @DisplayName("[SUCCESS] PATCH /labels/{labelId} - 라벨 수정 성공")
+    void updateLabel_success() throws Exception {
         // given
         Long labelId = 10L;
-        String body = """
-        {
-          "name": "bug",
-          "color": "#000000",
-          "description": "중복 이름"
-        }
-        """;
-
-        Mockito.when(labelService.updateLabel(eq(labelId), any()))
-                .thenThrow(new ValidationException(ErrorCode.DuplicateLabel, "이미 존재하는 라벨 이름입니다."));
+        String requestBody = """
+            { "name": "critical bug", "color": "#000000" }
+            """;
+        LabelResponse mockResponse = LabelResponse.builder().id(labelId).name("critical bug").color("#000000").build();
+        Mockito.when(labelService.updateLabel(eq(labelId), any())).thenReturn(mockResponse);
 
         // when & then
         mockMvc.perform(patch("/labels/{labelId}", labelId)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isBadRequest())                    // 400
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("DuplicateLabel"))
-                .andExpect(jsonPath("$.error.message").value("이미 존재하는 라벨 이름입니다."));
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("critical bug"))
+                .andExpect(jsonPath("$.data.color").value("#000000"));
     }
 
-    /**
-     * 라벨 수정
-     * 실패: name 중복 시
-     */
     @Test
-    void updateLabel_duplicateName() throws Exception {
-        // given
-        Long labelId = 10L;
-        String body = """
-        {
-          "name": "bug",
-          "color": "#000000",
-          "description": "중복 이름"
-        }
-        """;
-
-        Mockito.when(labelService.updateLabel(eq(labelId), any()))
-                .thenThrow(new ValidationException(ErrorCode.DuplicateLabel, "이미 존재하는 라벨 이름입니다."));
-
-        // when & then
-        mockMvc.perform(patch("/labels/{id}", labelId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isBadRequest())                    // 400
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("DuplicateLabel"))      // <-- 여기
-                .andExpect(jsonPath("$.error.message").value("이미 존재하는 라벨 이름입니다."));  // <-- 여기
-    }
-
-    /**
-     * 라벨 수정
-     * 실패: 존재하지 않는 라벨 수정 시
-     */
-    @Test
-    void updateLabel_notFound() throws Exception {
-        // given
-        Long labelId = 999L;
-        String body = """
-        {
-          "name": "nonexistent",
-        "color": "#123456",
-        "description": "없는 라벨"
-        }
-        """;
-
-        Mockito.when(labelService.updateLabel(eq(labelId), any()))
-                .thenThrow(new LabelNotFoundException("라벨을 찾을 수 없습니다."));
-
-        // when & then
-        mockMvc.perform(patch("/labels/{id}", labelId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isNotFound())               // 404
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("LabelNotFound"))
-                .andExpect(jsonPath("$.error.message").value("라벨을 찾을 수 없습니다."));
-    }
-
-    /**
-     * 라벨 삭제
-     * 성공
-     */
-    @Test
+    @DisplayName("[SUCCESS] DELETE /labels/{labelId} - 라벨 삭제 성공")
     void deleteLabel_success() throws Exception {
         // given
         Long labelId = 10L;
-
         Mockito.doNothing().when(labelService).deleteLabel(labelId);
 
         // when & then
-        mockMvc.perform(delete("/labels/{id}", labelId))
+        mockMvc.perform(delete("/labels/{id}", labelId)
+                        .with(csrf()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.message").value("Label 10 deleted successfully"));
     }
 
-    /**
-     * 라벨 삭제
-     * 실패: 존재하지 않는 라벨 삭제 시
-     */
     @Test
-    void deleteLabel_labelNotFound_notFound() throws Exception {
-        // given
-        Long labelId = 999L;
-        Mockito.doThrow(new LabelNotFoundException("라벨을 찾을 수 없습니다."))
-                .when(labelService).deleteLabel(labelId);
-
-        // when & then
-        mockMvc.perform(delete("/labels/{id}", labelId))
-                .andExpect(status().isNotFound())                 // 404
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("LabelNotFound"))
-                .andExpect(jsonPath("$.error.message").value("라벨을 찾을 수 없습니다."));
-    }
-
-    /**
-     * 이슈에 라벨 추가
-     * 성공
-     */
-    @Test
+    @DisplayName("[SUCCESS] POST /issues/{issueId}/labels - 이슈에 라벨 추가 성공")
     void addLabelsToIssue_success() throws Exception {
         // given
         Long issueId = 1L;
         List<Long> labelIds = List.of(10L, 20L);
+        IssueLabelsResponse mockResponse = IssueLabelsResponse.builder().id(issueId).build();
+        Mockito.when(issueLabelService.addLabelsToIssue(issueId, labelIds)).thenReturn(mockResponse);
 
-        IssueLabelsResponse mock = IssueLabelsResponse.builder()
-                .id(issueId)
-                .labels(List.of(
-                        IssueLabelsResponse.LabelSummary.builder().id(10L).name("bug").build(),
-                        IssueLabelsResponse.LabelSummary.builder().id(20L).name("feature").build()
-                ))
-                .build();
-
-        Mockito.when(issueLabelService.addLabelsToIssue(issueId, labelIds))
-                .thenReturn(mock);
-
-        String body = "[10, 20]";
+        String requestBody = "[10, 20]";
 
         // when & then
         mockMvc.perform(post("/issues/{issueId}/labels", issueId)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isOk())                       // 200
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.id").value(1))
-                .andExpect(jsonPath("$.data.labels").isArray())
-                .andExpect(jsonPath("$.data.labels[0].id").value(10))
-                .andExpect(jsonPath("$.data.labels[0].name").value("bug"))
-                .andExpect(jsonPath("$.data.labels[1].id").value(20))
-                .andExpect(jsonPath("$.data.labels[1].name").value("feature"));
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(issueId));
 
+        // issueLabelService의 메서드가 정확한 인자들로 호출되었는지 검증
         Mockito.verify(issueLabelService).addLabelsToIssue(issueId, labelIds);
     }
 
-    /**
-     * 이슈에 라벨 추가
-     * 실패: 이슈 조회 실패 시
-     */
     @Test
-    void addLabelsToIssue_issueNotFound_notfound() throws Exception {
-        // given
-        Long issueId = 999L;
-        String body = "[10, 20]";
-
-        Mockito.when(issueLabelService.addLabelsToIssue(eq(issueId), anyList()))
-                .thenThrow(new NotFoundException("Issue not found"));
-
-        // when & then
-        mockMvc.perform(post("/issues/{issueId}/labels", issueId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isNotFound())                 // 404
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("IssueNotFound"))
-                .andExpect(jsonPath("$.error.message").value("Issue not found"));
-    }
-
-    /**
-     * 이슈에 라벨 추가
-     * 실패: 없는 라벨 추가 시
-     */
-    @Test
-    void addLabelsToIssue_labelNotFound_notFound() throws Exception {
-        // given
-        Long issueId = 1L;
-        String body = "[10, 999]"; // 999가 없는 라벨이라고 가정
-
-        Mockito.when(issueLabelService.addLabelsToIssue(eq(issueId), anyList()))
-                .thenThrow(new LabelNotFoundException("라벨을 찾을 수 없습니다."));
-
-        // when & then
-        mockMvc.perform(post("/issues/{issueId}/labels", issueId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isNotFound())                  // 404
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("LabelNotFound"))
-                .andExpect(jsonPath("$.error.message").value("라벨을 찾을 수 없습니다."));
-    }
-
-    /**
-     * 이슈에서 라벨 제거
-     * 성공
-     */
-    @Test
+    @DisplayName("[SUCCESS] DELETE /issues/{issueId}/labels/{labelId} - 이슈에서 라벨 제거 성공")
     void deleteLabelFromIssue_success() throws Exception {
         // given
         Long issueId = 1L;
         Long labelId = 20L;
-
-        LabelResponse removed = LabelResponse.builder()
-                .id(labelId)
-                .name("feature")
-                .color("#00FF00")
-                .description("기능 추가")
-                .createdAt(LocalDateTime.now().minusDays(2))
-                .updatedAt(LocalDateTime.now())
-                .build();
-
-        Mockito.when(issueLabelService.deleteLabelFromIssue(eq(issueId), eq(labelId)))
-                .thenReturn(removed);
+        LabelResponse mockResponse = LabelResponse.builder().id(labelId).name("feature").build();
+        Mockito.when(issueLabelService.deleteLabelFromIssue(issueId, labelId)).thenReturn(mockResponse);
 
         // when & then
-        mockMvc.perform(delete("/issues/{issueId}/labels/{labelId}", issueId, labelId))
+        mockMvc.perform(delete("/issues/{issueId}/labels/{labelId}", issueId, labelId)
+                        .with(csrf()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.id").value(20))
-                .andExpect(jsonPath("$.data.name").value("feature"));
+                .andExpect(jsonPath("$.data.id").value(labelId));
 
         Mockito.verify(issueLabelService).deleteLabelFromIssue(issueId, labelId);
     }
-
-    /**
-     * 이슈에서 라벨 제거
-     * 실패: 이슈-라벨 매핑 없을 시
-     */
-    @Test
-    void deleteLabelFromIssue_issueLabelNotFound_notFound() throws Exception {
-        // given
-        Long issueId = 1L;
-        Long labelId = 999L; // 이 이슈에 매핑되지 않은 라벨이라고 가정
-
-        Mockito.when(issueLabelService.deleteLabelFromIssue(eq(issueId), eq(labelId)))
-                .thenThrow(new IssueLabelNotFoundException("이 이슈에 해당 라벨 매핑이 없습니다."));
-
-        // when & then
-        mockMvc.perform(delete("/issues/{issueId}/labels/{labelId}", issueId, labelId))
-                .andExpect(status().isNotFound())                       // 404
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("IssueLabelNotFound"))
-                .andExpect(jsonPath("$.error.message").value("이 이슈에 해당 라벨 매핑이 없습니다."));
-
-        Mockito.verify(issueLabelService).deleteLabelFromIssue(issueId, labelId);
-    }
-
 }

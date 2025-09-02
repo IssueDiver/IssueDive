@@ -1,12 +1,18 @@
 package com.issueDive.controller;
 
 import com.issueDive.dto.*;
+import com.issueDive.entity.User;
+import com.issueDive.exception.UserNotFoundException;
+import com.issueDive.repository.UserRepository;
 import com.issueDive.service.IssueService;
+import com.issueDive.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -17,6 +23,7 @@ import java.util.Map;
 public class IssueController {
 
     private final IssueService issueService;
+    private final UserService userService;
 
     /**
      * Create
@@ -24,9 +31,11 @@ public class IssueController {
      * @return 공통 응답 포맷 + 생성된 이슈 dto
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<IssueResponse>> createIssue(@RequestBody CreateIssueRequest request) {
-        Long currentUserId = 1L; // 임시, TODO: 로그인 세션/토큰 붙이면 교체
-        IssueResponse issue = issueService.createIssue(request, currentUserId);
+    public ResponseEntity<ApiResponse<IssueResponse>> createIssue(
+            @RequestBody CreateIssueRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponseDTO user = userService.findUserByEmail(userDetails.getUsername());
+        IssueResponse issue = issueService.createIssue(request, user.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(issue));
     }
 
@@ -46,7 +55,8 @@ public class IssueController {
                         filter.page() != null ? filter.page() : 0,
                         filter.size() != null ? filter.size() : 10,
                         filter.sort() != null ? filter.sort() : "createdAt",
-                        filter.order() != null ? filter.order() : "desc"
+                        filter.order() != null ? filter.order() : "desc",
+                        filter.query()
                 ));
         return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(issue));
     }
