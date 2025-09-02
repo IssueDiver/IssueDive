@@ -72,6 +72,10 @@ public class IssueService {
         if (filter.assigneeId()!=null) builder.and(qIssue.assignee.id.eq(filter.assigneeId()));
         if (filter.labelIds()!=null && !filter.labelIds().isEmpty()) builder.and(qIssue.labels.any().id.in(filter.labelIds()));
 
+        if (filter.query() != null && !filter.query().isBlank()) {
+            builder.and(qIssue.title.containsIgnoreCase(filter.query()));
+        }
+        
         // 페이징 객체
         int page = filter.page();
         int size = filter.size();

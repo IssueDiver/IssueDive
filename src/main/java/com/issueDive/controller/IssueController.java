@@ -1,6 +1,9 @@
 package com.issueDive.controller;
 
 import com.issueDive.dto.*;
+import com.issueDive.entity.User;
+import com.issueDive.exception.UserNotFoundException;
+import com.issueDive.repository.UserRepository;
 import com.issueDive.service.IssueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -8,11 +11,14 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.issueDive.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -24,6 +30,7 @@ import java.util.Map;
 public class IssueController {
 
     private final IssueService issueService;
+    private final UserService userService;
 
     /**
      * Create
@@ -36,9 +43,11 @@ public class IssueController {
             @ApiResponse(responseCode = "400", description = "잘못된 입력 값", content = @Content)
     })
     @PostMapping
-    public ResponseEntity<ApiCommonResponse<IssueResponse>> createIssue(@RequestBody CreateIssueRequest request) {
-        Long currentUserId = 1L; // 임시, TODO: 로그인 세션/토큰 붙이면 교체
-        IssueResponse issue = issueService.createIssue(request, currentUserId);
+    public ResponseEntity<ApiCommonResponse<IssueResponse>> createIssue(
+            @RequestBody CreateIssueRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        UserResponseDTO user = userService.findUserByEmail(userDetails.getUsername());
+        IssueResponse issue = issueService.createIssue(request, user.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiCommonResponse.ok(issue));
     }
 
@@ -64,7 +73,8 @@ public class IssueController {
                         filter.page() != null ? filter.page() : 0,
                         filter.size() != null ? filter.size() : 10,
                         filter.sort() != null ? filter.sort() : "createdAt",
-                        filter.order() != null ? filter.order() : "desc"
+                        filter.order() != null ? filter.order() : "desc",
+                        filter.query()
                 ));
         return ResponseEntity.status(HttpStatus.OK).body(ApiCommonResponse.ok(issue));
     }

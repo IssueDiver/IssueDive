@@ -1,6 +1,9 @@
 package com.issueDive.controller;
 
 import com.issueDive.dto.*;
+import com.issueDive.entity.User;
+import com.issueDive.exception.UserNotFoundException;
+import com.issueDive.repository.UserRepository;
 import com.issueDive.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -8,10 +11,13 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.issueDive.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +28,7 @@ import java.util.List;
 @RequestMapping("/issues/{issueId}/comments")
 public class CommentController {
     private final CommentService commentService;
+    private final UserService userService;
 
     @Operation(summary = "특정 이슈의 댓글 목록 조회", description = "특정 이슈에 달린 모든 댓글을 계층 구조(트리)로 조회합니다.")
     @ApiResponses({
@@ -45,9 +52,9 @@ public class CommentController {
     public ResponseEntity<ApiCommonResponse<CommentResponse>> createComment(
             @Parameter(description = "이슈 ID", required = true) @PathVariable Long issueId,
             @RequestBody @Valid CreateCommentRequest request,
-            @Parameter(description = "사용자 ID", required = true) @RequestHeader("X-USER-ID") Long userId){
-
-        CommentResponse created = commentService.createComment(issueId, request, userId);
+            @Parameter(description = "사용자 ID", required = true) @AuthenticationPrincipal UserDetails userDetails){
+        UserResponseDTO user = userService.findUserByEmail(userDetails.getUsername());
+        CommentResponse created = commentService.createComment(issueId, request, user.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiCommonResponse.ok(created));
     }
 
@@ -62,8 +69,9 @@ public class CommentController {
             @Parameter(description = "이슈 ID", required = true) @PathVariable Long issueId,
             @Parameter(description = "댓글 ID", required = true) @PathVariable Long commentId,
             @RequestBody @Valid UpdateCommentRequest request,
-            @Parameter(description = "사용자 ID", required = true) @RequestHeader("X-USER-ID") Long userId){
-        CommentResponse updated = commentService.updateComment(issueId, commentId, request, userId);
+            @Parameter(description = "사용자 ID", required = true) @AuthenticationPrincipal UserDetails userDetails){
+        UserResponseDTO user = userService.findUserByEmail(userDetails.getUsername());
+        CommentResponse updated = commentService.updateComment(issueId, commentId, request, user.getId());
         return ResponseEntity.ok(ApiCommonResponse.ok(updated));
     }
 
@@ -77,8 +85,9 @@ public class CommentController {
     public ResponseEntity<?> deleteComment(
             @Parameter(description = "이슈 ID", required = true) @PathVariable Long issueId,
             @Parameter(description = "댓글 ID", required = true) @PathVariable Long commentId,
-            @Parameter(description = "사용자 ID", required = true) @RequestHeader("X-USER-ID") Long userId){
-        commentService.deleteComment(issueId, commentId, userId);
+            @Parameter(description = "사용자 ID", required = true) @AuthenticationPrincipal UserDetails userDetails){
+        UserResponseDTO user = userService.findUserByEmail(userDetails.getUsername());
+        commentService.deleteComment(issueId, commentId, user.getId());
         return ResponseEntity.noContent().build();
     }
 
