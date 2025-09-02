@@ -1,24 +1,35 @@
-name: IssueDive Docker CI New
+name: IssueDive Docker CI
 
 on:
   push:
-    branches: [ "dev" ]
-  pull_request:
-    branches: [ "dev" ]
+    branches: [ "dev" ] # dev 브랜치에 푸시될 때 실행
 
 jobs:
-  build-and-test:
-    name: Build and Test
+  build-and-push:
+    name: Build and Push to Docker Hub
     runs-on: ubuntu-latest
     steps:
+      # 1. 소스 코드 체크아웃
       - name: Checkout source code
         uses: actions/checkout@v4
 
+      # 2. Docker Buildx 설정 (Docker 빌드 성능 향상)
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
-      - name: Build and Test with Docker
-        # Docker 빌드 과정에서 Gradle 테스트가 실행됩니다.
-        # 테스트가 실패하면 빌드도 실패하므로 CI가 중단됩니다.
-        run: |
-          docker build -t issue-dive-app .
+      # 3. Docker Hub 로그인
+      # GitHub Secrets에 저장된 정보를 이용해 Docker Hub에 로그인합니다.
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 4. Docker 이미지 빌드 및 푸시
+      # 빌드 과정에서 테스트가 실행되고, 성공하면 이미지를 Docker Hub에 푸시합니다.
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: . # Dockerfile이 있는 위치
+          push: true # Docker Hub로 푸시 활성화
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/issuedive:latest # "DockerHub계정명/이미지명:태그" 형식

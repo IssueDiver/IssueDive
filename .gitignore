@@ -41,6 +41,7 @@ application.properties
 application-test.properties
 application-dev.properties
 
+.secrets
 .env
 .java-version
 logs/
