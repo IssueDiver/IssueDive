@@ -9,6 +9,4 @@ public enum ErrorCode {
     CommentNotFound, InvalidParentComment,
     UserNotFound, DuplicateEmail, AuthenticationFailed,
 
-    // JWT 관련 에러 코드 추가
-    JwtTokenExpired, JwtTokenInvalid, JwtTokenMalformed
 }
