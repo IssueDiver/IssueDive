@@ -51,7 +51,7 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "인증 실패 (잘못된 이메일 또는 비밀번호)", content = @Content)
     })
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<JwtResponse>> login(@Valid @RequestBody LoginRequestDTO request) {
+    public ResponseEntity<ApiCommonResponse<JwtResponse>> login(@Valid @RequestBody LoginRequestDTO request) {
         try {
             // 인증된 사용자 정보 조회
             UserResponseDTO userResponse = userService.findUserByEmail(request.getEmail());
@@ -66,7 +66,7 @@ public class AuthController {
                     14400L, // 9월1일 변경 - 4시간 (초 단위)
                     userResponse
             );
-            return ResponseEntity.ok(ApiResponse.ok(jwtResponse));
+            return ResponseEntity.ok(ApiCommonResponse.ok(jwtResponse));
         } catch (Exception e) {
             //인증 실패시 예외 던지기 (GlobalExceptionHandler에서 처리)
             throw new com.issueDive.exception.AuthenticationFailedException();
@@ -79,7 +79,7 @@ public class AuthController {
      * @return 로그아웃 안내 메시지
      */
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Map<String, String>>> logout() {
+    public ResponseEntity<ApiCommonResponse<Map<String, String>>> logout() {
         //JWT는 stateless하므로 서버에서 특별한 로그아웃 처리 불필요
 
         Map<String, String> responseData = Map.of(
@@ -87,7 +87,7 @@ public class AuthController {
                 "instruction", "localStorage에서 accessToken을 제거하세요."
         );
 
-        ApiResponse<Map<String, String>> response = ApiResponse.ok(responseData);
+        ApiCommonResponse<Map<String, String>> response = ApiCommonResponse.ok(responseData);
         return ResponseEntity.ok(response);
     }
 
