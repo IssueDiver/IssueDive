@@ -97,7 +97,7 @@ public class GlobalExceptionHandlerTest {
 
         String body = """
                 {
-                  "username": "alice@test.com",
+                  "email": "alice@test.com",
                   "password": "wrong"
                 }
                 """;
