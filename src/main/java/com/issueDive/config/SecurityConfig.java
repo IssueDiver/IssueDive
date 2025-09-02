@@ -1,10 +1,14 @@
 package com.issueDive.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -12,15 +16,24 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
+import com.issueDive.security.CustomUserDetailsService;
+import com.issueDive.security.JwtAuthenticationFilter;
+
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final CustomUserDetailsService userDetailsService; // DB 기반 인증
+    private final JwtAuthenticationFilter jwtAuthenticationFilter; // JWT 필터
+
 
     // 공개적으로 접근 가능한 URL 목록
     private static final String[] PUBLIC_URLS = {
@@ -35,15 +48,18 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS 설정
-                .csrf(AbstractHttpConfigurer::disable)
+                // 9월1일 변경 - 세션 관리 정책 (JWT는 stateless)
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         // 모든 요청(/**)을 허용 (임시로)
-                        .anyRequest().permitAll()   // 개발 단계에서는 전체 허용
-//                        .requestMatchers(PUBLIC_URLS).permitAll() // 공개 URL은 모두 허용
-//                        .anyRequest().authenticated()             // 나머지는 인증 필요
+                        //.anyRequest().permitAll()   // 개발 단계에서는 전체 허용
+                        .requestMatchers(PUBLIC_URLS).permitAll() // 공개 URL은 모두 허용
+                        .anyRequest().authenticated()             // 나머지는 인증 필요
                 )
                 .formLogin(formLogin -> formLogin.disable()) // 폼 로그인 비활성화 (필요 시)
-                .logout(logout -> logout.disable());        // 로그아웃 비활성화 (필요 시)
+                .logout(logout -> logout.disable());
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);// 로그아웃 비활성화 (필요 시)
         return http.build();
     }
 
@@ -80,6 +96,11 @@ public class SecurityConfig {
                 .roles("USER")
                 .build();
         return new InMemoryUserDetailsManager(user);
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 
 }

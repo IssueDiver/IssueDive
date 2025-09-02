@@ -9,12 +9,14 @@ import com.issueDive.exception.ErrorCode;
 import com.issueDive.exception.NotFoundException;
 import com.issueDive.exception.ValidationException;
 import com.issueDive.repository.IssueRepository;
+import com.issueDive.repository.LabelRepository;
 import com.issueDive.repository.UserRepository;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -26,6 +28,7 @@ public class IssueService {
     private final QIssue qIssue = QIssue.issue;
     private final IssueRepository issueRepository;
     private final UserRepository userRepository; // 작성자/담당자 유효성 검증용
+    private final LabelRepository labelRepository;
 
     /**
      * Issue 생성
@@ -69,6 +72,10 @@ public class IssueService {
         if (filter.assigneeId()!=null) builder.and(qIssue.assignee.id.eq(filter.assigneeId()));
         if (filter.labelIds()!=null && !filter.labelIds().isEmpty()) builder.and(qIssue.labels.any().id.in(filter.labelIds()));
 
+        if (filter.query() != null && !filter.query().isBlank()) {
+            builder.and(qIssue.title.containsIgnoreCase(filter.query()));
+        }
+        
         // 페이징 객체
         int page = filter.page();
         int size = filter.size();
@@ -106,9 +113,10 @@ public class IssueService {
     /**
      * 수정
      * @param id 수정할 이슈 id
-     * @param request (선택적으로) title, description, assignee(uid)
+     * @param request (선택적으로) title, description, assigneeId, labelIds
      * @return 수정한 이슈 dto
      */
+    @Transactional
     public IssueResponse updateIssue(Long id, UpdateIssueRequest request) {
         Issue issue = issueRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Issue not found"));
@@ -120,6 +128,17 @@ public class IssueService {
             User assignee = userRepository.findById(request.assigneeId())
                     .orElseThrow(() -> new NotFoundException("Assignee not found"));
             issue.setAssignee(assignee);
+        }
+
+        if (request.labelIds() != null) {
+            // 1. 요청으로 받은 ID 목록으로 새로운 라벨 엔티티들을 조회합니다.
+            List<Label> newLabels = labelRepository.findAllById(request.labelIds());
+
+            // 2. 이슈의 기존 라벨 목록을 새로 조회한 라벨 목록으로 완전히 교체합니다.
+            // JPA가 Dirty Checking을 통해 연관관계 테이블(issue_label)의 변경을 감지하고
+            // DELETE와 INSERT 쿼리를 실행해줍니다.
+            issue.getLabels().clear();
+            issue.getLabels().addAll(newLabels);
         }
 
         Issue updated = issueRepository.save(issue);
