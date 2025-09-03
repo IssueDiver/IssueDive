@@ -1,0 +1,113 @@
+// buildscript 블록
+// 플러그인 자체와, 플러그인이 사용할 MySQL 라이브러리를 함께 정의.
+buildscript {
+    repositories {
+        gradlePluginPortal()
+    }
+    dependencies {
+        def flywayVersion = "11.11.2"
+        classpath "org.flywaydb:flyway-gradle-plugin:${flywayVersion}"
+        classpath "org.flywaydb:flyway-mysql:${flywayVersion}"
+    }
+}
+
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.5'
+    id 'io.spring.dependency-management' version '1.1.7'
+//    id 'org.flywaydb.flyway' version "11.11.2"
+}
+
+// buildscript에 정의한 플러그인 적용.
+apply plugin: 'org.flywaydb.flyway'
+
+group = 'com.issueDive'
+version = '0.0.1-SNAPSHOT'
+description = 'issueDive'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
+    compileOnly 'org.projectlombok:lombok'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'
+    testImplementation 'com.h2database:h2'
+//    flywayPlugin 'org.flywaydb:flyway-mysql' // flywayClean 같은 명령어 직접 사용 시 필요. 라이브러리 지정.
+
+    // QueryDsl
+    implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+    annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
+    annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+    annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+
+    // API docs
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.11'
+
+    runtimeOnly 'com.h2database:h2'
+
+    // JWT 의존성 추가
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    // @MockitoBean 지원을 위한 의존성
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+
+    // Spring Boot Actuator
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // Micrometer (Prometheus 연동을 위함)
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+}
+
+// Query DSL 설정
+clean{
+    delete file('src/main/generated')
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    jvmArgs '-Xshare:off'
+}
+
+// Flyway 설정
+flyway {
+    // project.hasProperty()를 사용해 'dbUrl' 프로퍼티가 있을 때만 설정을 적용합니다.
+    // 이렇게 하면 CI 환경처럼 DB 정보가 없을 때 이 블록을 건너뛰게 됩니다.
+    // CI 환경 등에서 dbUrl 프로퍼티가 없을 수 있으므로,
+    // 해당 프로퍼티가 존재할 때만 url, user, password를 설정합니다.
+    if (project.hasProperty('dbUrl')) {
+        url = dbUrl
+        user = dbUser
+        password = dbPassword
+    }
+    locations = ['filesystem:src/main/resources/db/migration']
+    // cleanDisabled는 DB 연결 정보와 무관하므로 바깥에 두어도 안전합니다.
+    cleanDisabled = false
+}
