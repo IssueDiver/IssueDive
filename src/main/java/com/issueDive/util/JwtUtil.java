@@ -35,7 +35,7 @@ public class JwtUtil {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("email", email);
-        claims.put("types", "ACCESS");
+        claims.put("type", "ACCESS");
 
         return createToken(claims, email, jwtExpiration);
     }
@@ -47,7 +47,14 @@ public class JwtUtil {
      */
     public String getUserIdFromToken(String token){
         Claims claims = getClaimsFromToken(token);
-        return claims.get("userId", String.class);
+        // Long/Integer 타입을 String으로 안전하게 변환
+        Object userIdObj = claims.get("userId");
+        if (userIdObj instanceof Long) {
+            return userIdObj.toString();
+        } else if (userIdObj instanceof Integer) {
+            return userIdObj.toString();
+        }
+        return String.valueOf(userIdObj);
     }
 
     /**
@@ -74,8 +81,12 @@ public class JwtUtil {
      * @return 만료 여부
      */
     public boolean isTokenExpired(String token){
-        final Date expiration = getExpirationDateFromToken(token);
-        return expiration.before(new Date());
+        try {
+            final Date expiration = getExpirationDateFromToken(token);
+            return expiration.before(new Date());
+        } catch (ExpiredJwtException e) {
+            return true;  // 이미 만료된 토큰
+        }
     }
 
     /**
@@ -130,12 +141,17 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    private Claims getClaimsFromToken(String token){
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+    private Claims getClaimsFromToken(String token) {
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (ExpiredJwtException e) {
+            // 만료된 토큰이어도 Claims는 반환 (만료 체크용)
+            return e.getClaims();
+        }
     }
 
 

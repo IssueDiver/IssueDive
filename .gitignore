@@ -41,7 +41,15 @@ application.properties
 application-test.properties
 application-dev.properties
 
+.secrets
 .env
 .java-version
 logs/
 gradle.properties
+.env.local
+.env.*.local
+
+# JWT 시크릿 키나 API 키가 포함된 파일
+**/secrets.properties
+**/*.secret
+**/jwt.properties
