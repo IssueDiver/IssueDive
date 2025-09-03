@@ -4,6 +4,8 @@ import com.issueDive.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,30 +26,31 @@ import com.issueDive.util.JwtUtil;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-public class AuthController {
+public class
+AuthController {
     private final UserService userService;
     // private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
-    @Operation(summary = "회원가입")
+    @Operation(summary = "회원가입", description = "새로운 사용자를 등록합니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "회원가입 성공"),
+            @ApiResponse(responseCode = "201", description = "회원가입 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청 값 (중복된 이메일 등)", content = @Content)
     })
     @PostMapping("/signup")
-    public ResponseEntity<ApiCommonResponse<UserResponseDTO>> signUp(@Valid @RequestBody UserRequestDTO request){
+    public ResponseEntity<ApiCommonResponse<UserResponseDTO>> signUp(@RequestBody(description = "회원가입 정보", required = true, content = @Content(schema = @Schema(implementation = UserRequestDTO.class))) @Valid @org.springframework.web.bind.annotation.RequestBody UserRequestDTO request){
         UserResponseDTO user = userService.signUp(request);
         ApiCommonResponse<UserResponseDTO> response = ApiCommonResponse.ok(user);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @Operation(summary = "로그인")
+    @Operation(summary = "로그인", description = "이메일과 비밀번호를 사용하여 로그인하고 JWT를 발급받습니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "로그인 성공"),
+            @ApiResponse(responseCode = "200", description = "로그인 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = JwtResponse.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패 (잘못된 이메일 또는 비밀번호)", content = @Content)
     })
     @PostMapping("/login")
-    public ResponseEntity<ApiCommonResponse<JwtResponse>> login(@Valid @RequestBody LoginRequestDTO request) {
+    public ResponseEntity<ApiCommonResponse<JwtResponse>> login(@RequestBody(description = "로그인 정보", required = true, content = @Content(schema = @Schema(implementation = LoginRequestDTO.class))) @Valid @org.springframework.web.bind.annotation.RequestBody LoginRequestDTO request) {
         try {
             // 인증된 사용자 정보 조회
             UserResponseDTO userResponse = userService.findUserByEmail(request.getEmail());
@@ -70,10 +73,10 @@ public class AuthController {
     }
 
 
-    /**
-     * 9월1일 변경 - 로그아웃 (JWT 기반에서는 클라이언트에서 토큰 삭제)
-     * @return 로그아웃 안내 메시지
-     */
+    @Operation(summary = "로그아웃", description = "서버 측에서는 별도의 처리가 없으며, 클라이언트에서 토큰을 삭제해야 합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "로그아웃 성공")
+    })
     @PostMapping("/logout")
     public ResponseEntity<ApiCommonResponse<Map<String, String>>> logout() {
         //JWT는 stateless하므로 서버에서 특별한 로그아웃 처리 불필요
@@ -87,9 +90,9 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "사용자 정보 조회")
+    @Operation(summary = "사용자 정보 조회", description = "ID로 특정 사용자의 정보를 조회합니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserResponseDTO.class))),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 사용자", content = @Content)
     })
     @GetMapping("/users/{id}")
@@ -100,7 +103,7 @@ public class AuthController {
         return new  ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @Operation(summary = "회원 탈퇴")
+    @Operation(summary = "회원 탈퇴", description = "ID로 특정 사용자를 탈퇴 처리합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "회원 탈퇴 성공"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 사용자", content = @Content)
@@ -113,9 +116,9 @@ public class AuthController {
         return  new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @Operation(summary = "전체 사용자 목록 조회")
+    @Operation(summary = "전체 사용자 목록 조회", description = "모든 사용자 목록을 조회합니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공")
+            @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserResponseDTO.class)))
     })
     @GetMapping("/users")
     public ResponseEntity<ApiCommonResponse<List<UserResponseDTO>>> getAllUsers() {
