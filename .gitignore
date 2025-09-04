@@ -1,5 +1,6 @@
 HELP.md
 .gradle
+.gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
@@ -40,6 +41,7 @@ out/
 application.properties
 application-test.properties
 application-dev.properties
+application-prod.yml
 
 .secrets
 .env
