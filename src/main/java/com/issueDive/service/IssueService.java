@@ -165,7 +165,7 @@ public class IssueService {
         try {
             newStatus = IssueStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new ValidationException(ErrorCode.InvalidStatus, "status must be either OPEN, IN_PROGRESS, or CLOSED");
+            throw new ValidationException(ErrorCode.InvalidStatus, "status must be one of OPEN, IN_PROGRESS, or CLOSED");
         }
 
         issue.setStatus(newStatus);
