@@ -3,6 +3,7 @@ package com.issueDive.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -49,18 +50,17 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS 설정
-                // 9월1일 변경 - 세션 관리 정책 (JWT는 stateless)
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        // 모든 요청(/**)을 허용 (임시로)
-                        //.anyRequest().permitAll()   // 개발 단계에서는 전체 허용
                         .requestMatchers(PUBLIC_URLS).permitAll() // 공개 URL은 모두 허용
+                        .requestMatchers("/auth/**", "/login").permitAll()                      // 1. 로그인/인증 관련 경로는 모두 허용
+                        .requestMatchers(HttpMethod.GET, "/issues", "/issues/**").permitAll()   // 2. 이슈 조회(GET)는 모두 허용
+                        .requestMatchers(HttpMethod.GET, "/labels", "/labels/**").permitAll()   // 3. 라벨 조회(GET)도 모두 허용
                         .anyRequest().authenticated()             // 나머지는 인증 필요
                 )
-                .formLogin(formLogin -> formLogin.disable()) // 폼 로그인 비활성화 (필요 시)
-                .logout(logout -> logout.disable());
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);// 로그아웃 비활성화 (필요 시)
+                .formLogin(formLogin -> formLogin.disable())         // 폼 로그인 비활성화 (서버 사이드 렌더링 사용X)
+                .logout(logout -> logout.disable());                    // 로그아웃 비활성화 (서버에 로그인 상태 저장X: Stateless)
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
