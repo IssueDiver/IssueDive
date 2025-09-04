@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import static org.mockito.MockitoAnnotations.openMocks;
@@ -55,15 +56,6 @@ public class AuthControllerTest {
 
     // Security Filter Chain이 로드될 때를 대비하여 의존성 Mock Bean 추가
     @MockitoBean
-    private CustomUserDetailsService customUserDetailsService;
-
-    @MockitoBean
-    private JwtUtil jwtUtil;
-
-    @MockitoBean  // 9월 2일 변경: AuthenticationManager mock 추가
-    private AuthenticationManager authenticationManager;
-
-    @MockitoBean  // 9월 2일 수정: CustomUserDetailsService Mock 추가 (빈 찾을 수 없음 에러 해결)
     private CustomUserDetailsService customUserDetailsService;
 
     @Test
@@ -227,5 +219,4 @@ public class AuthControllerTest {
                 .andExpect(jsonPath("$.data.instruction").value("localStorage에서 accessToken을 제거하세요."));
     }
 
-}
 }
