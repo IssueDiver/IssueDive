@@ -2,6 +2,7 @@ package com.issueDive.config;
 
 import com.issueDive.security.CustomUserDetailsService;
 import com.issueDive.security.JwtAuthenticationFilter;
+import com.issueDive.service.IssueService;
 import com.issueDive.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -36,6 +38,8 @@ public class SecurityConfigTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+    @MockitoBean
+    private IssueService issueService;
 
     private static final String VALID_TOKEN = "valid.jwt.token";
     private static final String USER_EMAIL = "test@example.com";
@@ -81,26 +85,43 @@ public class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("보호된 URL 인증 없이 접근 차단")
-    void protectedUrl_WithoutAuth_Blocked() throws Exception {
+    @DisplayName("permitAll()된 GET /issues는 인증 없이 접근 가능")
+    void publicGetIssues_WithoutAuth_Allowed() throws Exception {
+        // GET /issues는 이제 permitAll이므로 403 Forbidden이 아닌 200 OK를 기대해야 합니다.
         mockMvc.perform(get("/issues"))
                 .andDo(print())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("유효한 JWT 토큰으로 보호된 URL 접근 허용")
+    @DisplayName("보호된 URL(POST /issues)은 인증 없이 접근 차단")
+    void protectedPostUrl_WithoutAuth_Blocked() throws Exception {
+        // 테스트 대상을 GET이 아닌 POST로 변경하여 보호 여부를 확인합니다.
+        // POST, PATCH, DELETE 등은 여전히 인증이 필요합니다.
+        mockMvc.perform(post("/issues")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Test\"}"))
+                .andDo(print())
+                .andExpect(status().isForbidden()); // JWT 필터가 없으므로 403 Forbidden
+    }
+
+    @Test
+    @DisplayName("유효한 JWT 토큰으로 보호된 URL(POST /issues) 접근 허용")
     void protectedUrl_WithValidToken_Allowed() throws Exception {
         // given
         given(jwtUtil.getUserEmailFromToken(VALID_TOKEN)).willReturn(USER_EMAIL);
         given(jwtUtil.validateToken(VALID_TOKEN, USER_EMAIL)).willReturn(true);
         given(customUserDetailsService.loadUserByUsername(USER_EMAIL)).willReturn(userDetails);
 
-        // when & then
-        mockMvc.perform(get("/issues")
-                        .header("Authorization", "Bearer " + VALID_TOKEN))
+        String validIssueJson = "{\"title\":\"Test Issue\",\"description\":\"Test Description\"}";
+
+        // 테스트 대상을 GET이 아닌 POST로 변경하여 토큰 인증을 테스트합니다.
+        mockMvc.perform(post("/issues")
+                        .header("Authorization", "Bearer " + VALID_TOKEN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validIssueJson))
                 .andDo(print())
-                .andExpect(status().isOk());  // 또는 404 (컨트롤러 없음)
+                .andExpect(status().isCreated()); // 컨트롤러 로직에 따라 201 Created 또는 다른 성공 코드를 기대
     }
 
     @Test
@@ -111,11 +132,13 @@ public class SecurityConfigTest {
         given(jwtUtil.getUserEmailFromToken(invalidToken)).willReturn(USER_EMAIL);
         given(jwtUtil.validateToken(invalidToken, USER_EMAIL)).willReturn(false);
 
-        // when & then
-        mockMvc.perform(get("/issues")
-                        .header("Authorization", "Bearer " + invalidToken))
+        // 테스트 대상을 GET이 아닌 POST로 변경
+        mockMvc.perform(post("/issues")
+                        .header("Authorization", "Bearer " + invalidToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Test\"}"))
                 .andDo(print())
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized()); // JwtAuthenticationFilter에서 401 Unauthorized 반환
     }
 
     @Test
@@ -156,14 +179,17 @@ public class SecurityConfigTest {
         // 첫 번째 요청
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
+                        .content("{\"email\":\"test@test.com\", \"password\":\"password\"}"))
                 .andDo(print())
-                .andExpect(status().is4xxClientError());  // 400 Bad Request
+                .andExpect(status().isOk());
 
-        // 두 번째 요청 - 세션이 유지되지 않아야 함
-        mockMvc.perform(get("/issues"))
+        // 두 번째 요청도 GET /issues로 보내면 permitAll 이므로 성공합니다.
+        // 대신 보호된 경로인 POST /issues로 보내서 세션이 유지되지 않음을 확인합니다.
+        mockMvc.perform(post("/issues")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Test\"}"))
                 .andDo(print())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden()); // 세션이 없으므로 인증 실패
     }
 
     @Test
@@ -199,14 +225,20 @@ public class SecurityConfigTest {
     @Test
     @DisplayName("HTTP 메서드별 접근 제어 - DELETE")
     void httpMethod_DELETE_Allowed() throws Exception {
+        // given: 인증 관련 설정 (기존과 동일)
         given(jwtUtil.getUserEmailFromToken(VALID_TOKEN)).willReturn(USER_EMAIL);
         given(jwtUtil.validateToken(VALID_TOKEN, USER_EMAIL)).willReturn(true);
         given(customUserDetailsService.loadUserByUsername(USER_EMAIL)).willReturn(userDetails);
 
+        // given: IssueService의 deleteIssue 메소드가 호출될 때 아무것도 하지 않도록 설정 (성공 시나리오)
+        doNothing().when(issueService).deleteIssue(1L);
+
+        // when & then
         mockMvc.perform(delete("/issues/1")
                         .header("Authorization", "Bearer " + VALID_TOKEN))
                 .andDo(print())
-                .andExpect(status().is4xxClientError());  // 404 (리소스 없음)
+                // then: 4xx 에러가 아닌, 성공 상태 코드인 200 OK를 기대하도록 변경
+                .andExpect(status().isOk());
     }
 
     @Test
