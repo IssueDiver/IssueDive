@@ -111,3 +111,5 @@ flyway {
     // cleanDisabled는 DB 연결 정보와 무관하므로 바깥에 두어도 안전합니다.
     cleanDisabled = false
 }
+
+bootJar { archiveFileName = 'app.jar' }
