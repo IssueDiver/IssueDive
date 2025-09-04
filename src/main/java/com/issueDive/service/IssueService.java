@@ -154,7 +154,7 @@ public class IssueService {
     /**
      * 이슈 상태 변경
      * @param id 상태 변경할 Issue ID
-     * @param status 변경할 상태 (OPEN, CLOSED)
+     * @param status 변경할 상태 (OPEN, IN_PROGRESS, CLOSED)
      * @return 상태가 변경된 IssueResponse
      */
     public IssueResponse changeIssueStatus(Long id, String status) {
@@ -165,7 +165,7 @@ public class IssueService {
         try {
             newStatus = IssueStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new ValidationException(ErrorCode.InvalidStatus, "status must be either OPEN or CLOSED");
+            throw new ValidationException(ErrorCode.InvalidStatus, "status must be either OPEN, IN_PROGRESS, or CLOSED");
         }
 
         issue.setStatus(newStatus);
