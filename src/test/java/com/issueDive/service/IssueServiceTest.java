@@ -12,8 +12,11 @@ import com.issueDive.repository.IssueRepository;
 import com.issueDive.repository.LabelRepository;
 import com.issueDive.repository.UserRepository;
 import com.issueDive.service.IssueService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -212,9 +215,11 @@ public class IssueServiceTest {
      * 이슈 상태 변경 테스트
      * 정상 케이스: OPEN 또는 CLOSED 상태로 변경 시 정상 응답 확인
      */
-    @Test
-    void changeIssueStatus_validStatus_success() {
-        // given
+    @ParameterizedTest
+    @ValueSource(strings = {"OPEN", "IN_PROGRESS", "CLOSED"})
+    @DisplayName("유효한 상태값(OPEN, IN_PROGRESS, CLOSED)으로 이슈 상태 변경 성공")
+    void changeIssueStatus_validStatus_success(String validStatus) {
+// given
         Issue issue = Issue.builder()
                 .id(1L)
                 .status(IssueStatus.OPEN)
@@ -225,10 +230,10 @@ public class IssueServiceTest {
         when(issueRepository.save(any(Issue.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         //when
-        IssueResponse response = issueService.changeIssueStatus(1L, "CLOSED");
+        IssueResponse response = issueService.changeIssueStatus(1L, validStatus);
 
         // then
-        assertEquals("CLOSED", response.status());
+        assertEquals(validStatus, response.status());
         verify(issueRepository).save(issue);
     }
 
@@ -237,6 +242,7 @@ public class IssueServiceTest {
      * 예외 케이스1: 존재하지 않는 이슈 ID 요청 시 NotFoundException 발생 확인
      */
     @Test
+    @DisplayName("존재하지 않는 이슈의 상태 변경 시도 시 NotFoundException 발생")
     void changeIssueStatus_issueNotFound() {
         // given
         when(issueRepository.findById(99L)).thenReturn(Optional.empty());
@@ -253,6 +259,7 @@ public class IssueServiceTest {
      * 예외 케이스2: 유효하지 않은 상태 값 요청 시 ValidationException 발생 확인
      */
     @Test
+    @DisplayName("유효하지 않은 상태값으로 이슈 상태 변경 시도 시 ValidationException 발생")
     void changeIssueStatus_invalidStatus_throwsValidationException() {
         // given
         Issue issue = Issue.builder()
@@ -267,7 +274,7 @@ public class IssueServiceTest {
         ValidationException ex = assertThrows(ValidationException.class,
                 () -> issueService.changeIssueStatus(1L, "INVALID_STATUS"));
 
-        assertTrue(ex.getMessage().contains("status must be either OPEN or CLOSED"));
+        assertTrue(ex.getMessage().contains("status must be one of OPEN, IN_PROGRESS, or CLOSED"));
     }
 
     /**
