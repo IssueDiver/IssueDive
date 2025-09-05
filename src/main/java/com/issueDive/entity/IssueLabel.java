@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -31,6 +32,7 @@ public class IssueLabel {
     private LocalDateTime addedAt;
 
     public IssueLabel(Issue issue, Label label) {
+        this.id = new IssueLabelId();
         this.issue = issue;
         this.label = label;
     }
