@@ -73,7 +73,13 @@ public class IssueService {
         if (filter.labelIds()!=null && !filter.labelIds().isEmpty()) builder.and(qIssue.labels.any().id.in(filter.labelIds()));
 
         if (filter.query() != null && !filter.query().isBlank()) {
-            builder.and(qIssue.title.containsIgnoreCase(filter.query()));
+            String searchQuery = filter.query();
+            builder.and(
+                    qIssue.title.containsIgnoreCase(searchQuery) // 1. 제목에서 검색
+                            .or(qIssue.author.username.containsIgnoreCase(searchQuery)) // 2. 작성자 이름으로 검색
+                            .or(qIssue.assignee.username.containsIgnoreCase(searchQuery)) // 3. 담당자 이름으로 검색
+                            .or(qIssue.labels.any().name.containsIgnoreCase(searchQuery)) // 4. 라벨 이름 중 하나라도 일치하면 검색
+            );
         }
         
         // 페이징 객체
@@ -148,7 +154,7 @@ public class IssueService {
     /**
      * 이슈 상태 변경
      * @param id 상태 변경할 Issue ID
-     * @param status 변경할 상태 (OPEN, CLOSED)
+     * @param status 변경할 상태 (OPEN, IN_PROGRESS, CLOSED)
      * @return 상태가 변경된 IssueResponse
      */
     public IssueResponse changeIssueStatus(Long id, String status) {
@@ -159,7 +165,7 @@ public class IssueService {
         try {
             newStatus = IssueStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new ValidationException(ErrorCode.InvalidStatus, "status must be either OPEN or CLOSED");
+            throw new ValidationException(ErrorCode.InvalidStatus, "status must be one of OPEN, IN_PROGRESS, or CLOSED");
         }
 
         issue.setStatus(newStatus);
