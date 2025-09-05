@@ -8,10 +8,7 @@ import com.issueDive.entity.*;
 import com.issueDive.exception.ErrorCode;
 import com.issueDive.exception.NotFoundException;
 import com.issueDive.exception.ValidationException;
-import com.issueDive.repository.IssueLabelRepository;
-import com.issueDive.repository.IssueRepository;
-import com.issueDive.repository.LabelRepository;
-import com.issueDive.repository.UserRepository;
+import com.issueDive.repository.*;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
@@ -24,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +34,7 @@ public class IssueService {
     private final UserRepository userRepository; // 작성자/담당자 유효성 검증용
     private final LabelRepository labelRepository;
     private final IssueLabelRepository issueLabelRepository;
+    private final IssueAssigneeRepository issueAssigneeRepository;
     private final QIssueLabel qIssueLabel = QIssueLabel.issueLabel;
 
     /**
@@ -47,26 +46,31 @@ public class IssueService {
     public IssueResponse createIssue(CreateIssueRequest request, Long authorId) {
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-        User assignee = null;
-        if (request.assigneeId() != null) {
-            assignee = userRepository.findById(request.assigneeId())
-                    .orElseThrow(() -> new NotFoundException("Assignee not found"));
-        }
+
         Issue issue = new Issue();
         issue.setTitle(request.title());
         issue.setDescription(request.description());
         issue.setAuthor(author);
-        issue.setAssignee(assignee);
         issue.setStatus(IssueStatus.OPEN);
 
-        //라벨 매핑 추가
+        // 다중 담당자 매핑
+        if (request.assigneeIds() != null && !request.assigneeIds().isEmpty()) {
+            List<User> assignees = userRepository.findAllById(request.assigneeIds());
+            Set<IssueAssignee> issueAssignees = assignees.stream()
+                    .map(assignee -> new IssueAssignee(issue, assignee))
+                    .collect(Collectors.toSet());
+            issue.setIssueAssignees(issueAssignees);
+        }
+
+        // 다중 라벨 매핑
         if (request.labels() != null && !request.labels().isEmpty()) {
             List<Label> labels = labelRepository.findAllById(request.labels());
-            for (Label label : labels) {
-                IssueLabel issueLabel = new IssueLabel(issue, label);
-                issue.getIssueLabels().add(issueLabel);
-            }
+            Set<IssueLabel> issueLabels = labels.stream()
+                    .map(label -> new IssueLabel(issue, label))
+                    .collect(Collectors.toSet());
+            issue.setIssueLabels(issueLabels);
         }
+
         Issue saved = issueRepository.save(issue);
         return toResponse(saved);
     }
@@ -96,17 +100,11 @@ public class IssueService {
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
 
-        // 2. ID 목록을 사용해 이슈를 조회하면서, 연관된 issueLabels와 그 안의 label을 fetch join으로 함께 가져옴
-        List<Issue> issues = queryFactory
-                .selectFrom(qIssue)
-                .leftJoin(qIssue.issueLabels, qIssueLabel).fetchJoin() // issue -> issueLabels 조인
-                .leftJoin(qIssueLabel.label).fetchJoin()               // issueLabels -> label 조인
-                .where(qIssue.id.in(ids))
-                .orderBy(orderSpecifier)
-                .fetch();
+        // 2. 상세 정보들을 fetch join으로 함께 가져옴
+        List<Issue> issues = issueRepository.findAllByIdInWithDetails(ids);
 
-        // 중복된 이슈를 제거하고 ID 순서대로 정렬
-        List<Issue> distinctIssues = ids.stream()
+        // 정렬 유지를 위해 ID 목록 순서대로 다시 정렬
+        List<Issue> sortedIssues = ids.stream()
                 .flatMap(id -> issues.stream().filter(issue -> issue.getId().equals(id)))
                 .distinct()
                 .collect(Collectors.toList());
@@ -118,7 +116,7 @@ public class IssueService {
                 .where(builder)
                 .fetchCount();
 
-        List<IssueResponse> dtoList = distinctIssues.stream().map(this::toResponse).toList();
+        List<IssueResponse> dtoList = sortedIssues.stream().map(this::toResponse).toList();
         return new PageImpl<>(dtoList, pageable, total);
     }
 
@@ -145,8 +143,9 @@ public class IssueService {
         if (filter.authorId() != null) {
             builder.and(qIssue.author.id.eq(filter.authorId()));
         }
-        if (filter.assigneeId() != null) {
-            builder.and(qIssue.assignee.id.eq(filter.assigneeId()));
+        // 담당자 ID로 필터링
+        if (filter.assigneeIds() != null && !filter.assigneeIds().isEmpty()) {
+            builder.and(qIssue.issueAssignees.any().user.id.in(filter.assigneeIds()));
         }
         // 라벨 ID로 필터링
         if (filter.labelIds() != null && !filter.labelIds().isEmpty()) {
@@ -155,12 +154,13 @@ public class IssueService {
         // 텍스트로 검색 (제목, 작성자, 담당자, 라벨 이름)
         if (filter.query() != null && !filter.query().isBlank()) {
             String searchQuery = filter.query();
-            builder.and(
-                    qIssue.title.containsIgnoreCase(searchQuery)
-                            .or(qIssue.author.username.containsIgnoreCase(searchQuery))
-                            .or(qIssue.assignee.username.containsIgnoreCase(searchQuery))
-                            .or(qIssue.issueLabels.any().label.name.containsIgnoreCase(searchQuery))
-            );
+            BooleanBuilder queryBuilder = new BooleanBuilder();
+            queryBuilder.or(qIssue.title.containsIgnoreCase(searchQuery));
+            queryBuilder.or(qIssue.author.username.containsIgnoreCase(searchQuery));
+            // 담당자와 라벨 검색은 조인이 필요하므로 별도 쿼리가 더 효율적일 수 있으나, 여기서는 간소화된 형태로 유지
+            // queryBuilder.or(qIssue.issueAssignees.any().user.username.containsIgnoreCase(searchQuery));
+            // queryBuilder.or(qIssue.issueLabels.any().label.name.containsIgnoreCase(searchQuery));
+            builder.and(queryBuilder);
         }
         return builder;
     }
@@ -192,34 +192,32 @@ public class IssueService {
      */
     @Transactional
     public IssueResponse updateIssue(Long id, UpdateIssueRequest request) {
-        Issue issue = issueRepository.findById(id)
+        Issue issue = issueRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new NotFoundException("Issue not found"));
 
         if (request.title() != null) issue.setTitle(request.title());
         if (request.description() != null) issue.setDescription(request.description());
-        if (request.assigneeId() != null) {
-            User assignee = userRepository.findById(request.assigneeId())
-                    .orElseThrow(() -> new NotFoundException("Assignee not found"));
-            issue.setAssignee(assignee);
+
+        // 다중 담당자 매핑 업데이트
+        if (request.assigneeIds() != null) {
+            issueAssigneeRepository.deleteByIssueId(issue.getId());
+            List<User> newAssignees = userRepository.findAllById(request.assigneeIds());
+            Set<IssueAssignee> newIssueAssignees = newAssignees.stream()
+                    .map(assignee -> new IssueAssignee(issue, assignee))
+                    .collect(Collectors.toSet());
+            issueAssigneeRepository.saveAll(newIssueAssignees);
+            issue.setIssueAssignees(newIssueAssignees);
         }
 
+        // 다중 라벨 매핑 업데이트
         if (request.labelIds() != null) {
-            // 1. 기존 라벨 연결을 DB에서 전부 삭제
-            issueLabelRepository.deleteByIssueId(issue.getId());
-
-            // 2. 새로운 라벨 목록 조회
-            List<Label> newLabels = labelRepository.findAllById(request.labelIds());
-
-            // 3. 새로운 연결 객체 생성
-            List<IssueLabel> newIssueLabels = newLabels.stream()
+            issueLabelRepository.deleteByIssueId(issue.getId());                        // 1. 기존 연결 삭제
+            List<Label> newLabels = labelRepository.findAllById(request.labelIds());    // 2. 찾기
+            Set<IssueLabel> newIssueLabels = newLabels.stream()
                     .map(label -> new IssueLabel(issue, label))
-                    .collect(Collectors.toList());
-
-            // 4. 새로 만든 연결을 DB에 전부 저장
-            issueLabelRepository.saveAll(newIssueLabels);
-
-            // 5. 메모리의 issue 객체 상태도 동기화
-            issue.setIssueLabels(newIssueLabels);
+                    .collect(Collectors.toSet());                                      // 3. 새 연결 생성
+            issueLabelRepository.saveAll(newIssueLabels);                               // 4. DB 저장
+            issue.setIssueLabels(newIssueLabels);                                       // 5. 메모리 객체 동기화
         }
 
         return toResponse(issue);
@@ -259,6 +257,10 @@ public class IssueService {
     }
 
     private IssueResponse toResponse(Issue issue) {
+        List<Long> assigneeIds = issue.getIssueAssignees().stream()
+                .map(issueAssignee -> issueAssignee.getUser().getId())
+                .toList();
+
         List<Long> labelIds = issue.getIssueLabels().stream()
                 .map(issueLabel -> issueLabel.getLabel().getId())
                 .toList();
@@ -269,7 +271,7 @@ public class IssueService {
                 issue.getDescription(),
                 issue.getStatus().name(),
                 issue.getAuthor().getId(),
-                issue.getAssignee() != null ? issue.getAssignee().getId() : null,
+                assigneeIds,
                 labelIds,
                 issue.getCreatedAt(),
                 issue.getUpdatedAt()

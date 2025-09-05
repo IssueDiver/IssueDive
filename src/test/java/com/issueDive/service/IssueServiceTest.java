@@ -8,10 +8,7 @@ import com.issueDive.entity.IssueStatus;
 import com.issueDive.entity.User;
 import com.issueDive.exception.NotFoundException;
 import com.issueDive.exception.ValidationException;
-import com.issueDive.repository.IssueLabelRepository;
-import com.issueDive.repository.IssueRepository;
-import com.issueDive.repository.LabelRepository;
-import com.issueDive.repository.UserRepository;
+import com.issueDive.repository.*;
 import com.issueDive.service.IssueService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,11 +31,11 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class) // DB나 외부 시스템에 독립적이도록 Mocking 활용
 public class IssueServiceTest {
 
-    // @Mock private JPAQueryFactory jpaQueryFactory;
     @Mock private IssueRepository issueRepository;
     @Mock private UserRepository userRepository;
     @Mock private LabelRepository labelRepository;
     @Mock private IssueLabelRepository issueLabelRepository;
+    @Mock private IssueAssigneeRepository issueAssigneeRepository;
 
     @InjectMocks
     private IssueService issueService;
@@ -53,8 +51,9 @@ public class IssueServiceTest {
         // given
         Long authorId = 1L;
         Long assigneeId = 2L;
+        List<Long> assigneeIds = List.of(assigneeId);
 
-        CreateIssueRequest request = new CreateIssueRequest("제목", "설명", assigneeId, List.of());
+        CreateIssueRequest request = new CreateIssueRequest("제목", "설명", assigneeIds, List.of());
 
         User author = new User();
         author.setId(authorId);
@@ -63,8 +62,13 @@ public class IssueServiceTest {
 
         // 사용자 조회 및 이슈 저장 동작 모방
         when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
-        when(userRepository.findById(2L)).thenReturn(Optional.of(assignee));
-        when(issueRepository.save(any(Issue.class))).thenAnswer(invocation -> invocation.getArgument(0)); // 파라미터 Issue 객체 그대로 반환하도록 설정 (실제 저장 시뮬레이션)
+        when(userRepository.findAllById(assigneeIds)).thenReturn(List.of(assignee));
+        when(issueRepository.save(any(Issue.class))).thenAnswer(
+                invocation -> {
+                    Issue issueToSave = invocation.getArgument(0);
+                    issueToSave.setId(authorId); // ID가 있어야 toResponse에서 NPE가 발생하지 않음
+                    return issueToSave;
+                });
 
         // when
         IssueResponse response = issueService.createIssue(request, authorId);
@@ -72,9 +76,9 @@ public class IssueServiceTest {
         // then
         assertEquals("제목", response.title());
         assertEquals(authorId, response.authorId());
-        assertEquals(assigneeId, response.assigneeId());
-        verify(issueRepository).save(any(Issue.class)); // 이슈 저장 메서드가 호출되었는지 검증
-
+        assertTrue(response.assigneeIds().contains(assigneeId));
+        assertEquals(1, response.assigneeIds().size());
+        verify(issueRepository).save(any(Issue.class));
     }
 
     /**
@@ -119,6 +123,8 @@ public class IssueServiceTest {
                 .title("테스트")
                 .status(IssueStatus.OPEN)
                 .author(author)
+                .issueAssignees(new HashSet<>()) // 빈 리스트로 초기화
+                .issueLabels(new HashSet<>())    // 빈 리스트로 초기화
                 .build();
 
         when(issueRepository.findWithLabelsById(issueId)).thenReturn(Optional.of(issue));
@@ -161,11 +167,12 @@ public class IssueServiceTest {
         Issue existing = Issue.builder().id(issueId).title("원래 제목").description("원래 설명").author(author).build();
 
         Long newAssigneeId = 3L;
-        UpdateIssueRequest request = new UpdateIssueRequest("수정된 제목", "수정된 설명", newAssigneeId, new ArrayList<>());
+        List<Long> newAssigneeIds = List.of(newAssigneeId);
+        UpdateIssueRequest request = new UpdateIssueRequest("수정된 제목", "수정된 설명", newAssigneeIds, new ArrayList<>());
         User newAssignee = User.builder().id(newAssigneeId).build();
 
-        when(issueRepository.findById(issueId)).thenReturn(Optional.of(existing));
-        when(userRepository.findById(newAssigneeId)).thenReturn(Optional.of(newAssignee));
+        when(issueRepository.findWithDetailsById(issueId)).thenReturn(Optional.of(existing));
+        when(userRepository.findAllById(newAssigneeIds)).thenReturn(List.of(newAssignee));
         doNothing().when(issueLabelRepository).deleteByIssueId(issueId);
 
         // when
@@ -174,7 +181,7 @@ public class IssueServiceTest {
         // then
         assertEquals("수정된 제목", updated.title());
         assertEquals("수정된 설명", updated.description());
-        assertEquals(newAssigneeId, updated.assigneeId());
+        assertTrue(updated.assigneeIds().contains(newAssigneeId));
 
     }
 
@@ -186,7 +193,7 @@ public class IssueServiceTest {
     @Test
     void updateIssue_notFound() {
         // given
-        when(issueRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(issueRepository.findWithDetailsById(anyLong())).thenReturn(Optional.empty());
         UpdateIssueRequest request = new UpdateIssueRequest("제목", "설명", null, new ArrayList<>());
 
         // when-then

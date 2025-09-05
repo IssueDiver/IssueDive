@@ -9,7 +9,7 @@ public record IssueResponse(
         String description,
         String status,
         Long authorId,
-        Long assigneeId,
+        List<Long> assigneeIds,
         List<Long> labelIds,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
