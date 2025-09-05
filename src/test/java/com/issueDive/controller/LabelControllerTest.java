@@ -171,7 +171,7 @@ class LabelControllerTest {
     }
 
     @Test
-    @DisplayName("[SUCCESS] DELETE /labels/{labelId} - 라벨 삭제 성공")
+    @DisplayName("[SUCCESS] DELETE /labels/{labelId} - 이슈-라벨이 매핑된 라벨 삭제 성공")
     void deleteLabel_success() throws Exception {
         // given
         Long labelId = 10L;
@@ -182,6 +182,18 @@ class LabelControllerTest {
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.message").value("Label 10 deleted successfully"));
+    }
+
+    @Test
+    @DisplayName("[SUCCESS] DELETE /labels/{labelId} - 이슈-라벨 매핑 없는 라벨 삭제 성공")
+    void deleteLabel_noMapping_success() throws Exception {
+        Long labelId = 20L;
+        Mockito.doNothing().when(labelService).deleteLabel(labelId);
+
+        mockMvc.perform(delete("/labels/{id}", labelId)
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.message").value("Label 20 deleted successfully"));
     }
 
     @Test

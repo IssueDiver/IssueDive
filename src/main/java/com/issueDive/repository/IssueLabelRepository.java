@@ -18,7 +18,10 @@ public interface IssueLabelRepository extends JpaRepository<IssueLabel, IssueLab
     void deleteByLabelId(Long labelId);
     long countByLabel(Label label);
 
+    boolean existsByLabelId(Long labelId);
+
     @Modifying(clearAutomatically = true)   // db 데이터 변경, 이 쿼리가 실행된 후 영속성 컨텍스트 자동 초기화
     @Query("DELETE FROM IssueLabel il WHERE il.issue.id = :issueId")
     void deleteByIssueId(@Param("issueId") Long issueId);
+
 }

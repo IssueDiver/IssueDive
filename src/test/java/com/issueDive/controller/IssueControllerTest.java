@@ -96,7 +96,7 @@ public class IssueControllerTest {
 
 
     @Test
-    @DisplayName("[SUCCESS] POST /issues - 이슈 생성 성공")
+    @DisplayName("[SUCCESS] POST /issues - 라벨 없는 이슈 생성 성공")
     public void createIssue_success() throws Exception {
         // given: 서비스가 반환할 Mock 응답 데이터 생성
         IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "OPEN", currentUserId, 2L, List.of(1L, 2L), LocalDateTime.now(), LocalDateTime.now());
@@ -122,6 +122,36 @@ public class IssueControllerTest {
                 .andExpect(jsonPath("$.data.id").value(1))
                 .andExpect(jsonPath("$.data.title").value("제목"))
                 .andExpect(jsonPath("$.data.authorId").value(currentUserId));
+    }
+
+    @Test
+    @DisplayName("[SUCCESS] POST /issues - 라벨 포함 이슈 생성 성공")
+    public void createIssue_withLabels_success() throws Exception {
+        IssueResponse mockResponse = new IssueResponse(
+                2L, "라벨 있는 이슈", "설명", "OPEN", currentUserId, 2L,
+                List.of(1L, 3L), LocalDateTime.now(), LocalDateTime.now());
+
+        Mockito.when(issueService.createIssue(any(CreateIssueRequest.class), eq(currentUserId)))
+                .thenReturn(mockResponse);
+
+        String requestBody = """
+        {
+            "title": "라벨 있는 이슈",
+            "description": "설명",
+            "assigneeId": 2,
+            "labels": [1, 3]
+        }
+        """;
+
+        mockMvc.perform(post("/issues")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.id").value(2))
+                .andExpect(jsonPath("$.data.labelIds[0]").value(1))
+                .andExpect(jsonPath("$.data.labelIds[1]").value(3));
     }
 
     @Test

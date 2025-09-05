@@ -92,7 +92,11 @@ public class LabelService {
             throw new LabelNotFoundException("Label not found: id=" + id);
         }
 
-        issueLabelRepository.deleteByLabelId(id);
+        //이슈 라벨 매핑이 있는지 검사 후, 매핑이 있을 시에만 삭제하도록 바꿔야 함
+        if (!issueLabelRepository.existsByLabelId(id)){
+            issueLabelRepository.deleteByLabelId(id);
+        }
+
         labelRepository.deleteById(id);
     }
 }

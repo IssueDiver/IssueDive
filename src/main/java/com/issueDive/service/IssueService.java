@@ -58,6 +58,13 @@ public class IssueService {
         issue.setAuthor(author);
         issue.setAssignee(assignee);
         issue.setStatus(IssueStatus.OPEN);
+
+        //라벨 매핑 추가
+        if (request.labels() != null && !request.labels().isEmpty()) {
+            List<Label> labels = labelRepository.findAllById(request.labels());
+            issue.getLabels().addAll(labels);
+        }
+
         Issue saved = issueRepository.save(issue);
         return toResponse(saved);
     }
