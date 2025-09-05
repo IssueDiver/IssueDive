@@ -52,13 +52,8 @@ public class Issue {
     private LocalDateTime updatedAt;
 
     @Builder.Default
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "issue_label",
-            joinColumns = @JoinColumn(name = "issue_id"),
-            inverseJoinColumns = @JoinColumn(name = "label_id")
-    )
-    private Set<Label> labels = new HashSet<>();
+    @OneToMany(mappedBy = "issue", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<IssueLabel> issueLabels = new ArrayList<>();
 
     @PrePersist
     public void prePersist() {
