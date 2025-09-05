@@ -33,7 +33,6 @@ CREATE TABLE issue_label (
                               issue_id BIGINT,
                               label_id BIGINT,
                               PRIMARY KEY (issue_id, label_id),
-                              added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                               FOREIGN KEY (issue_id) REFERENCES issue(id),
                               FOREIGN KEY (label_id) REFERENCES label(id)
 );
