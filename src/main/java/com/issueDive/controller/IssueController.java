@@ -97,7 +97,7 @@ public class IssueController {
     }
 
     /**
-     * Update
+     * Update (PATCH /issues/{id})
      * @param id 수정할 이슈 id
      * @param request title, description, assignee(uid), labelIds
      * @return 공통 응답 포맷 + 수정된 이슈 dto
@@ -107,8 +107,27 @@ public class IssueController {
             @ApiResponse(responseCode = "200", description = "수정 성공"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 이슈", content = @Content)
     })
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<ApiCommonResponse<IssueResponse>> patchIssue(
+            @Parameter(description = "수정할 이슈의 ID", required = true, example = "1")
+            @PathVariable Long id,
+            @RequestBody UpdateIssueRequest request) {
+        return ResponseEntity.ok(ApiCommonResponse.ok(issueService.updateIssue(id, request)));
+    }
+
+    /**
+     * Update (PUT /issues/{id})
+     * @param id 수정할 이슈 id
+     * @param request title, description, assignee(uid), labelIds
+     * @return 공통 응답 포맷 + 수정된 이슈 dto
+     */
+    @Operation(summary = "이슈 정보 전체 수정", description = "특정 이슈의 전체 정보(제목, 설명 등)를 수정합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "수정 성공"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 이슈", content = @Content)
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiCommonResponse<IssueResponse>> putIssue(
             @Parameter(description = "수정할 이슈의 ID", required = true, example = "1")
             @PathVariable Long id,
             @RequestBody UpdateIssueRequest request) {

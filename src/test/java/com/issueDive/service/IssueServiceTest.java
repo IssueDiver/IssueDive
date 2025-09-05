@@ -8,6 +8,7 @@ import com.issueDive.entity.IssueStatus;
 import com.issueDive.entity.User;
 import com.issueDive.exception.NotFoundException;
 import com.issueDive.exception.ValidationException;
+import com.issueDive.repository.IssueLabelRepository;
 import com.issueDive.repository.IssueRepository;
 import com.issueDive.repository.LabelRepository;
 import com.issueDive.repository.UserRepository;
@@ -36,7 +37,7 @@ public class IssueServiceTest {
     @Mock private IssueRepository issueRepository;
     @Mock private UserRepository userRepository;
     @Mock private LabelRepository labelRepository;
-
+    @Mock private IssueLabelRepository issueLabelRepository;
 
     @InjectMocks
     private IssueService issueService;
@@ -120,7 +121,7 @@ public class IssueServiceTest {
                 .author(author)
                 .build();
 
-        when(issueRepository.findById(issueId)).thenReturn(Optional.of(issue));
+        when(issueRepository.findWithLabelsById(issueId)).thenReturn(Optional.of(issue));
 
         // when
         IssueResponse res = issueService.getIssue(issueId);
@@ -140,7 +141,7 @@ public class IssueServiceTest {
     void getIssue_notFound() {
         // given
         Long invalidId = 999L;
-        when(issueRepository.findById(invalidId)).thenReturn(Optional.empty());
+        when(issueRepository.findWithLabelsById(invalidId)).thenReturn(Optional.empty());
         // when-then
         assertThrows(NotFoundException.class, () -> issueService.getIssue(invalidId));
     }
@@ -165,7 +166,7 @@ public class IssueServiceTest {
 
         when(issueRepository.findById(issueId)).thenReturn(Optional.of(existing));
         when(userRepository.findById(newAssigneeId)).thenReturn(Optional.of(newAssignee));
-        when(issueRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        doNothing().when(issueLabelRepository).deleteByIssueId(issueId);
 
         // when
         IssueResponse updated = issueService.updateIssue(issueId, request);

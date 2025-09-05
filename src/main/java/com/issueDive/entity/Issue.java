@@ -5,7 +5,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @RequiredArgsConstructor
@@ -50,13 +52,8 @@ public class Issue {
     private LocalDateTime updatedAt;
 
     @Builder.Default
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "issue_label",
-            joinColumns = @JoinColumn(name = "issue_id"),
-            inverseJoinColumns = @JoinColumn(name = "label_id")
-    )
-    private Set<Label> labels = new HashSet<>();
+    @OneToMany(mappedBy = "issue", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<IssueLabel> issueLabels = new ArrayList<>();
 
     @PrePersist
     public void prePersist() {
@@ -69,5 +66,8 @@ public class Issue {
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
+    @OneToMany(mappedBy = "issue", cascade = CascadeType.REMOVE, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Comment> comments = new ArrayList<>();
 
 }
