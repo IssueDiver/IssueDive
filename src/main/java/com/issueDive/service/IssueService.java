@@ -72,7 +72,10 @@ public class IssueService {
         }
 
         Issue saved = issueRepository.save(issue);
-        return toResponse(saved);
+
+        Issue result = issueRepository.findWithDetailsById(saved.getId())
+                .orElseThrow(() -> new NotFoundException("Failed to fetch created issue with details"));
+        return toResponse(result);
     }
 
     /**
@@ -179,7 +182,7 @@ public class IssueService {
      */
     @Transactional(readOnly = true)
     public IssueResponse getIssue(Long id) {
-        Issue issue = issueRepository.findWithLabelsById(id)
+        Issue issue = issueRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new NotFoundException("Issue not found"));
         return toResponse(issue);
     }
@@ -230,7 +233,7 @@ public class IssueService {
      * @return 상태가 변경된 IssueResponse
      */
     public IssueResponse changeIssueStatus(Long id, String status) {
-        Issue issue = issueRepository.findById(id)
+        Issue issue = issueRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new NotFoundException("Issue not found"));
 
         IssueStatus newStatus;
