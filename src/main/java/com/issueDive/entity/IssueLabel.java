@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @Table(name = "issue_label")
 public class IssueLabel {
 
+    @Builder.Default
     @EmbeddedId
     private IssueLabelId id = new IssueLabelId();
 

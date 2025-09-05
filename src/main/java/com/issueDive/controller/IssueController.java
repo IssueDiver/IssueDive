@@ -68,7 +68,7 @@ public class IssueController {
                 new IssueFilterRequest(
                         filter.status(),
                         filter.authorId(),
-                        filter.assigneeId(),
+                        filter.assigneeIds(),
                         filter.labelIds(),
                         filter.page() != null ? filter.page() : 0,
                         filter.size() != null ? filter.size() : 10,

@@ -5,7 +5,7 @@ import java.util.List;
 public record UpdateIssueRequest(
         String title,
         String description,
-        Long assigneeId,
+        List<Long> assigneeIds,
         List<Long> labelIds
 ) {}
 

@@ -58,8 +58,6 @@ public class IssueControllerTest {
     // --- MockitoBean: 테스트 대상 컨트롤러의 의존성을 가짜(Mock) 객체로 주입 ---
     @MockitoBean
     private IssueService issueService;
-
-    // 컨트롤러의 의존성인 UserRepository를 Mock Bean으로 추가
     @MockitoBean
     private UserRepository userRepository;
     @MockitoBean
@@ -99,7 +97,7 @@ public class IssueControllerTest {
     @DisplayName("[SUCCESS] POST /issues - 라벨 없는 이슈 생성 성공")
     public void createIssue_success() throws Exception {
         // given: 서비스가 반환할 Mock 응답 데이터 생성
-        IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "OPEN", currentUserId, 2L, List.of(1L, 2L), LocalDateTime.now(), LocalDateTime.now());
+        IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "OPEN", currentUserId, List.of(2L), List.of(1L, 2L), LocalDateTime.now(), LocalDateTime.now());
 
         // issueService의 createIssue 메서드가 'currentUserId'와 함께 호출될 때, mockResponse를 반환하도록 설정
         Mockito.when(issueService.createIssue(any(CreateIssueRequest.class), eq(currentUserId))).thenReturn(mockResponse);
@@ -108,7 +106,7 @@ public class IssueControllerTest {
             {
                 "title": "제목",
                 "description": "설명",
-                "assigneeId": 2
+                "assigneeIds": [2]
             }
             """;
 
@@ -128,7 +126,7 @@ public class IssueControllerTest {
     @DisplayName("[SUCCESS] POST /issues - 라벨 포함 이슈 생성 성공")
     public void createIssue_withLabels_success() throws Exception {
         IssueResponse mockResponse = new IssueResponse(
-                2L, "라벨 있는 이슈", "설명", "OPEN", currentUserId, 2L,
+                2L, "라벨 있는 이슈", "설명", "OPEN", currentUserId, List.of(2L),
                 List.of(1L, 3L), LocalDateTime.now(), LocalDateTime.now());
 
         Mockito.when(issueService.createIssue(any(CreateIssueRequest.class), eq(currentUserId)))
@@ -138,7 +136,7 @@ public class IssueControllerTest {
         {
             "title": "라벨 있는 이슈",
             "description": "설명",
-            "assigneeId": 2,
+            "assigneeIds": [2],
             "labels": [1, 3]
         }
         """;
@@ -159,7 +157,7 @@ public class IssueControllerTest {
     void getIssues_returnsPagedResults() throws Exception {
         // given: Mock Service가 반환할 Page 객체 생성
         List<IssueResponse> issueList = List.of(
-                new IssueResponse(1L, "첫 번째 이슈", "설명 1", "OPEN", 1L, 2L, List.of(), LocalDateTime.now(), LocalDateTime.now())
+                new IssueResponse(1L, "첫 번째 이슈", "설명 1", "OPEN", 1L, List.of(2L), List.of(), LocalDateTime.now(), LocalDateTime.now())
         );
         Page<IssueResponse> mockPage = new PageImpl<>(issueList, PageRequest.of(0, 10), issueList.size());
 
@@ -180,7 +178,7 @@ public class IssueControllerTest {
     @DisplayName("[SUCCESS] GET /issues/{id} - 특정 이슈 조회 성공")
     public void getIssue_success() throws Exception {
         // given
-        IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "OPEN", 1L, 2L, List.of(), LocalDateTime.now(), LocalDateTime.now());
+        IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "OPEN", 1L, List.of(2L), List.of(), LocalDateTime.now(), LocalDateTime.now());
         Mockito.when(issueService.getIssue(1L)).thenReturn(mockResponse);
 
         // when & then
@@ -207,7 +205,7 @@ public class IssueControllerTest {
     @DisplayName("[SUCCESS] PATCH /issues/{id}/status - 이슈 상태 변경 성공")
     void changeIssueStatus_success() throws Exception {
         // given
-        IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "CLOSED", 1L, 2L, List.of(), LocalDateTime.now(), LocalDateTime.now());
+        IssueResponse mockResponse = new IssueResponse(1L, "제목", "설명", "CLOSED", 1L, List.of(2L), List.of(), LocalDateTime.now(), LocalDateTime.now());
         Mockito.when(issueService.changeIssueStatus(1L, "CLOSED")).thenReturn(mockResponse);
 
         String requestBody = """
