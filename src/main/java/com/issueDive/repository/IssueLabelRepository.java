@@ -14,4 +14,5 @@ public interface IssueLabelRepository extends JpaRepository<IssueLabel, IssueLab
     List<IssueLabel> findAllByIssue(Issue issue);
     void deleteByLabelId(Long labelId);
     long countByLabel(Label label);
+    boolean existsByLabelId(Long labelId);
 }
