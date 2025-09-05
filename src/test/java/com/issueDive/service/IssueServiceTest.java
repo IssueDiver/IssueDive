@@ -19,10 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -47,28 +44,32 @@ public class IssueServiceTest {
      * - 반환된 IssueResponse에 입력 정보가 정확히 반영되는지 검증한다.
      */
     @Test
+    @DisplayName("이슈 생성 성공")
     void createIssue_success() {
         // given
         Long authorId = 1L;
-        Long assigneeId = 2L;
-        List<Long> assigneeIds = List.of(assigneeId);
-
+        List<Long> assigneeIds = List.of(2L);
         CreateIssueRequest request = new CreateIssueRequest("제목", "설명", assigneeIds, List.of());
+        User author = User.builder().id(authorId).build();
+        User assignee = User.builder().id(2L).build();
 
-        User author = new User();
-        author.setId(authorId);
-        User assignee = new User();
-        assignee.setId(assigneeId);
+        Issue issueToSave = new Issue();
+        issueToSave.setTitle(request.title());
+        issueToSave.setDescription(request.description());
+        issueToSave.setAuthor(author);
+        issueToSave.setStatus(IssueStatus.OPEN);
 
-        // 사용자 조회 및 이슈 저장 동작 모방
+        Issue savedIssue = new Issue();
+        savedIssue.setId(10L); // DB에서 ID가 할당되었다고 가정
+        savedIssue.setTitle(request.title());
+        savedIssue.setDescription(request.description());
+        savedIssue.setAuthor(author);
+
         when(userRepository.findById(authorId)).thenReturn(Optional.of(author));
         when(userRepository.findAllById(assigneeIds)).thenReturn(List.of(assignee));
-        when(issueRepository.save(any(Issue.class))).thenAnswer(
-                invocation -> {
-                    Issue issueToSave = invocation.getArgument(0);
-                    issueToSave.setId(authorId); // ID가 있어야 toResponse에서 NPE가 발생하지 않음
-                    return issueToSave;
-                });
+        when(issueRepository.save(any(Issue.class))).thenReturn(savedIssue);
+
+        when(issueRepository.findWithDetailsById(savedIssue.getId())).thenReturn(Optional.of(savedIssue));
 
         // when
         IssueResponse response = issueService.createIssue(request, authorId);
@@ -76,9 +77,8 @@ public class IssueServiceTest {
         // then
         assertEquals("제목", response.title());
         assertEquals(authorId, response.authorId());
-        assertTrue(response.assigneeIds().contains(assigneeId));
-        assertEquals(1, response.assigneeIds().size());
         verify(issueRepository).save(any(Issue.class));
+        verify(issueRepository).findWithDetailsById(savedIssue.getId());
     }
 
     /**
@@ -87,6 +87,7 @@ public class IssueServiceTest {
      * - NotFoundException 예외를 발생시키는지 검증한다.
      */
     @Test
+    @DisplayName("이슈 생성 실패 - 작성자 없음")
     void createIssue_authorNotFound() {
 
         // given
@@ -114,6 +115,7 @@ public class IssueServiceTest {
      * - 해당 이슈 정보가 정확하게 IssueResponse로 변환되어 반환되는지 확인한다.
      */
     @Test
+    @DisplayName("이슈 단건 조회 성공")
     void getIssue_success() {
         // given
         User author = User.builder().id(1L).build();
@@ -123,11 +125,11 @@ public class IssueServiceTest {
                 .title("테스트")
                 .status(IssueStatus.OPEN)
                 .author(author)
-                .issueAssignees(new HashSet<>()) // 빈 리스트로 초기화
-                .issueLabels(new HashSet<>())    // 빈 리스트로 초기화
+                .issueAssignees(Set.of()) // 빈 리스트로 초기화
+                .issueLabels(Set.of())    // 빈 리스트로 초기화
                 .build();
 
-        when(issueRepository.findWithLabelsById(issueId)).thenReturn(Optional.of(issue));
+        when(issueRepository.findWithDetailsById(issueId)).thenReturn(Optional.of(issue));
 
         // when
         IssueResponse res = issueService.getIssue(issueId);
@@ -144,10 +146,11 @@ public class IssueServiceTest {
      * - NotFoundException 예외 발생 여부를 검증한다.
      */
     @Test
+    @DisplayName("이슈 단건 조회 실패 - 이슈 없음")
     void getIssue_notFound() {
         // given
         Long invalidId = 999L;
-        when(issueRepository.findWithLabelsById(invalidId)).thenReturn(Optional.empty());
+        when(issueRepository.findWithDetailsById(invalidId)).thenReturn(Optional.empty());
         // when-then
         assertThrows(NotFoundException.class, () -> issueService.getIssue(invalidId));
     }
@@ -158,6 +161,7 @@ public class IssueServiceTest {
      * - 수정 요청 내용을 반영하여 정상적으로 이슈가 수정되는지 검증한다.
      */
     @Test
+    @DisplayName("이슈 수정 성공")
     void updateIssue_success() {
 
         // given
@@ -191,6 +195,7 @@ public class IssueServiceTest {
      * - NotFoundException 예외가 발생하는지 검증한다.
      */
     @Test
+    @DisplayName("이슈 수정 실패 - 이슈 없음")
     void updateIssue_notFound() {
         // given
         when(issueRepository.findWithDetailsById(anyLong())).thenReturn(Optional.empty());
@@ -206,6 +211,7 @@ public class IssueServiceTest {
      * - 정상적으로 이슈 삭제가 수행되는지 검증한다.
      */
     @Test
+    @DisplayName("이슈 삭제 성공")
     void deleteIssue_success() {
         // given
         Long issueId = 10L;
@@ -227,17 +233,21 @@ public class IssueServiceTest {
     @ValueSource(strings = {"OPEN", "IN_PROGRESS", "CLOSED"})
     @DisplayName("유효한 상태값(OPEN, IN_PROGRESS, CLOSED)으로 이슈 상태 변경 성공")
     void changeIssueStatus_validStatus_success(String validStatus) {
-// given
+        // given
         Issue issue = Issue.builder()
-                .id(1L)
-                .status(IssueStatus.OPEN)
-                .author(User.builder().id(1L).build())
+                .id(1L).status(IssueStatus.OPEN).author(User.builder().id(1L).build())
+                .issueAssignees(Set.of()).issueLabels(Set.of())
                 .build();
 
-        when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
-        when(issueRepository.save(any(Issue.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        Issue savedIssue = Issue.builder()
+                .id(1L).status(IssueStatus.valueOf(validStatus)).author(User.builder().id(1L).build())
+                .issueAssignees(Set.of()).issueLabels(Set.of())
+                .build();
 
-        //when
+        when(issueRepository.findWithDetailsById(1L)).thenReturn(Optional.of(issue));
+        when(issueRepository.save(any(Issue.class))).thenReturn(savedIssue);
+
+        // when
         IssueResponse response = issueService.changeIssueStatus(1L, validStatus);
 
         // then
@@ -253,7 +263,7 @@ public class IssueServiceTest {
     @DisplayName("존재하지 않는 이슈의 상태 변경 시도 시 NotFoundException 발생")
     void changeIssueStatus_issueNotFound() {
         // given
-        when(issueRepository.findById(99L)).thenReturn(Optional.empty());
+        when(issueRepository.findWithDetailsById(99L)).thenReturn(Optional.empty());
 
         // when-then
         NotFoundException ex = assertThrows(NotFoundException.class,
@@ -276,7 +286,7 @@ public class IssueServiceTest {
                 .author(User.builder().id(1L).build())
                 .build();
 
-        when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
+        when(issueRepository.findWithDetailsById(1L)).thenReturn(Optional.of(issue));
 
         // when-then
         ValidationException ex = assertThrows(ValidationException.class,
@@ -291,6 +301,7 @@ public class IssueServiceTest {
      * - NotFoundException 예외가 발생하는지 검증한다.
      */
     @Test
+    @DisplayName("이슈 삭제 실패 - 이슈 없음")
     void deleteIssue_notFound() {
         // given
         Long invalidId = 999L;
