@@ -158,8 +158,8 @@ public class IssueService {
             queryBuilder.or(qIssue.title.containsIgnoreCase(searchQuery));
             queryBuilder.or(qIssue.author.username.containsIgnoreCase(searchQuery));
             // 담당자와 라벨 검색은 조인이 필요하므로 별도 쿼리가 더 효율적일 수 있으나, 여기서는 간소화된 형태로 유지
-            // queryBuilder.or(qIssue.issueAssignees.any().user.username.containsIgnoreCase(searchQuery));
-            // queryBuilder.or(qIssue.issueLabels.any().label.name.containsIgnoreCase(searchQuery));
+             queryBuilder.or(qIssue.issueAssignees.any().user.username.containsIgnoreCase(searchQuery));
+             queryBuilder.or(qIssue.issueLabels.any().label.name.containsIgnoreCase(searchQuery));
             builder.and(queryBuilder);
         }
         return builder;
