@@ -137,10 +137,10 @@ public class IssueController {
     /**
      * 이슈 상태 변경 PATCH /issues/{id}/status
      * @param id 이슈 ID
-     * @param body { "status": "OPEN" or "CLOSED" }
+     * @param body { "status": "OPEN" or "CLOSED" or "IN_PROGRESS"}
      * @return 변경된 상태 IssueResponse 반환
      */
-    @Operation(summary = "이슈 상태 변경", description = "이슈의 상태를 'OPEN' 또는 'CLOSED'로 변경합니다. 요청 본문 예시: { \"status\": \"CLOSED\" }")
+    @Operation(summary = "이슈 상태 변경", description = "이슈의 상태를 'OPEN' 또는 'CLOSED' 또는 'IN_PROGRESS'로 변경합니다. 요청 본문 예시: { \"status\": \"CLOSED\" }")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "상태 변경 성공"),
             @ApiResponse(responseCode = "400", description = "잘못된 상태 값 (OPEN, CLOSED만 가능)", content = @Content),
@@ -174,4 +174,24 @@ public class IssueController {
         issueService.deleteIssue(id);
         return ResponseEntity.ok(ApiCommonResponse.ok(Map.of("message", "Issue " + id + " deleted successfully")));
     }
+
+    /**
+     * 현재 이슈의 필터/정렬 기준에 따른 이전 및 다음 이슈 ID 조회
+     * @param id 현재 이슈
+     * @param filter status, authorId, labelIds, page, size, sort, order
+     * @return previousIssueId, nextIssueId
+     */
+    @Operation(summary = "이슈 상세 페이지 탐색 정보 조회", description = "현재 이슈의 필터/정렬 기준에 따른 이전 및 다음 이슈 ID를 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "탐색 정보 조회 성공")
+    })
+    @GetMapping("/{id}/navigation")
+    public ResponseEntity<ApiCommonResponse<IssueNavigationResponse>> getIssueNavigation(
+            @Parameter(description = "현재 이슈의 ID", required = true) @PathVariable Long id,
+            @Parameter(description = "이슈 목록 조회 시 사용된 필터 객체") @Valid IssueFilterRequest filter) {
+
+        IssueNavigationResponse navigation = issueService.getIssueNavigation(id, filter);
+        return ResponseEntity.ok(ApiCommonResponse.ok(navigation));
+    }
+
 }

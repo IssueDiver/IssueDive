@@ -1,9 +1,6 @@
 package com.issueDive.service;
 
-import com.issueDive.dto.CreateIssueRequest;
-import com.issueDive.dto.IssueFilterRequest;
-import com.issueDive.dto.IssueResponse;
-import com.issueDive.dto.UpdateIssueRequest;
+import com.issueDive.dto.*;
 import com.issueDive.entity.*;
 import com.issueDive.exception.ErrorCode;
 import com.issueDive.exception.NotFoundException;
@@ -257,6 +254,45 @@ public class IssueService {
             throw new NotFoundException("Issue not found");
         }
         issueRepository.deleteById(id);
+    }
+
+    /**
+     * 특정 필터 조건 하에서, 현재 이슈의 이전/다음 이슈 ID 조회
+     * @param currentIssueId 현재 보고 있는 이슈의 ID
+     * @param filter 목록 페이지에서 사용된 필터 및 정렬 조건
+     * @return 이전/다음 이슈 ID를 담은 DTO
+     */
+    @Transactional(readOnly = true)
+    public IssueNavigationResponse getIssueNavigation(Long currentIssueId, IssueFilterRequest filter) {
+        // 1. 목록 조회와 동일한 필터, 정렬 조건을 가져옵니다.
+        BooleanBuilder builder = createFilterBuilder(filter);
+        OrderSpecifier<?> orderSpecifier = getSortOrder(filter.sort(), filter.order());
+
+        // 2. 페이징 없이, 필터링되고 정렬된 전체 이슈 ID 목록을 조회합니다.
+        List<Long> allFilteredIds = queryFactory
+                .select(qIssue.id)
+                .from(qIssue)
+                .where(builder)
+                .orderBy(orderSpecifier)
+                .fetch();
+
+        if (allFilteredIds.isEmpty()) {
+            return new IssueNavigationResponse(null, null);
+        }
+
+        // 3. 전체 목록에서 현재 이슈 ID의 인덱스(순서)를 찾습니다.
+        int currentIndex = allFilteredIds.indexOf(currentIssueId);
+
+        if (currentIndex == -1) {
+            // 현재 이슈가 필터 조건에 맞지 않는 경우 (예: 상태가 바뀜)
+            return new IssueNavigationResponse(null, null);
+        }
+
+        // 4. 인덱스를 기준으로 이전(-1)과 다음(+1) ID를 결정합니다.
+        Long previousId = (currentIndex > 0) ? allFilteredIds.get(currentIndex - 1) : null;
+        Long nextId = (currentIndex < allFilteredIds.size() - 1) ? allFilteredIds.get(currentIndex + 1) : null;
+
+        return new IssueNavigationResponse(previousId, nextId);
     }
 
     private IssueResponse toResponse(Issue issue) {
