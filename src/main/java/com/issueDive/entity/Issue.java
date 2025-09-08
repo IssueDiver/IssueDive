@@ -72,6 +72,7 @@ public class Issue {
         this.updatedAt = LocalDateTime.now();
     }
 
+    @Builder.Default
     @OneToMany(mappedBy = "issue", cascade = CascadeType.REMOVE, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Comment> comments = new ArrayList<>();
 

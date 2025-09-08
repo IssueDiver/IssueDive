@@ -84,6 +84,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     // Micrometer (Prometheus 연동을 위함)
     implementation 'io.micrometer:micrometer-registry-prometheus'
+    // Redis (Caching)
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 }
 
 // Query DSL 설정
