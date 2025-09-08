@@ -44,7 +44,10 @@ public class IssueService {
      * @param authorId 작성자 user id
      * @return 생성된 이슈 dto
      */
-    @CacheEvict(value = "issues", allEntries = true) // 'issues' 목록 캐시 전체를 비웁니다.
+    @Caching(evict = {
+            @CacheEvict(value = "issues", allEntries = true),
+            @CacheEvict(value = "issue_navigation", allEntries = true)
+    }) // 'issues'와 'issue_navigation' 캐시를 비웁니다.
     public IssueResponse createIssue(CreateIssueRequest request, Long authorId) {
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
@@ -199,7 +202,10 @@ public class IssueService {
     @Transactional
     @Caching(
             put = { @CachePut(value = "issue", key = "#id") }, // 'issue' 캐시는 최신 내용으로 업데이트합니다.
-            evict = { @CacheEvict(value = "issues", allEntries = true) } // 'issues' 목록 캐시는 그냥 비웁니다.
+            evict = {
+                    @CacheEvict(value = "issues", allEntries = true),
+                    @CacheEvict(value = "issue_navigation", allEntries = true)
+            } // 'issues'와 'issue_navigation' 목록 캐시는 그냥 비웁니다.
     )
     public IssueResponse updateIssue(Long id, UpdateIssueRequest request) {
         Issue issue = issueRepository.findWithDetailsById(id)
@@ -241,7 +247,10 @@ public class IssueService {
      */
     @Caching(
             put = { @CachePut(value = "issue", key = "#id") },
-            evict = { @CacheEvict(value = "issues", allEntries = true) }
+            evict = {
+                    @CacheEvict(value = "issues", allEntries = true),
+                    @CacheEvict(value = "issue_navigation", allEntries = true)
+            }
     )
     public IssueResponse changeIssueStatus(Long id, String status) {
         Issue issue = issueRepository.findWithDetailsById(id)
@@ -266,7 +275,8 @@ public class IssueService {
     @Caching(
             evict = {
                     @CacheEvict(value = "issue", key = "#id"),
-                    @CacheEvict(value = "issues", allEntries = true)
+                    @CacheEvict(value = "issues", allEntries = true),
+                    @CacheEvict(value = "issue_navigation", allEntries = true)
             }
     )
     public void deleteIssue(Long id) {
@@ -283,6 +293,7 @@ public class IssueService {
      * @return 이전/다음 이슈 ID를 담은 DTO
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = "issue_navigation", key = "#currentIssueId + '-' + #filter.toString()")
     public IssueNavigationResponse getIssueNavigation(Long currentIssueId, IssueFilterRequest filter) {
         // 1. 목록 조회와 동일한 필터, 정렬 조건을 가져옵니다.
         BooleanBuilder builder = createFilterBuilder(filter);
