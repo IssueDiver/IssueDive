@@ -1,5 +1,5 @@
 package com.issueDive.entity;
 
 public enum IssueStatus {
-    OPEN, CLOSED
+    OPEN, IN_PROGRESS, CLOSED
 }

@@ -92,7 +92,10 @@ public class LabelService {
             throw new LabelNotFoundException("Label not found: id=" + id);
         }
 
+        // 부모(label) 삭제 전에, 먼저 자식 테이블(issue_label)에서 해당 라벨을 사용하는 모든 연결 삭제
+        // (존재 여부를 확인할 필요 없이 그냥 삭제함. 없으면 아무 일도 일어나지 않음.)
         issueLabelRepository.deleteByLabelId(id);
+
         labelRepository.deleteById(id);
     }
 }

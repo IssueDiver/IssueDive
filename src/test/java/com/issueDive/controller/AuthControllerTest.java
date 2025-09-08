@@ -22,10 +22,12 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import static org.mockito.MockitoAnnotations.openMocks;
 /**
  * @WebMvcTest: 웹 계층(컨트롤러)에 대한 슬라이스 테스트를 진행합니다.
  * @AutoConfigureMockMvc: MockMvc를 자동으로 설정하며, addFilters = false를 통해
@@ -89,10 +91,11 @@ public class AuthControllerTest {
                 "password", "pw123"
         );
         var userResponse = new UserResponseDTO(1L, "alice", "alice@test.com");
+        var mockToken = "mock-access-token";
 
         // 컨트롤러의 로그인 로직에 필요한 Mocking 설정
         given(userService.findUserByEmail(anyString())).willReturn(userResponse);
-        given(jwtUtil.generateAccessToken(anyLong(), anyString())).willReturn("mock-access-token");
+        given(jwtUtil.generateAccessToken(anyLong(), anyString())).willReturn(mockToken);
 
         // when & then
         mvc.perform(post("/auth/login")
@@ -100,13 +103,14 @@ public class AuthControllerTest {
                         .content(om.writeValueAsString(requestBody)))
                 .andExpect(status().isOk()) // 200 OK 상태 코드 확인
                 .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.accessToken").value(mockToken))
+                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.data.user.email").value("alice@test.com"));
     }
 
     @Test
     @DisplayName("[FAIL] POST /auth/login - 로그인 실패 (인증 오류)")
     void login_fail() throws Exception {
-        // given: 잘못된 로그인 정보
         var requestBody = Map.of(
                 "email", "nope@test.com",
                 "password", "wrong"
@@ -176,4 +180,43 @@ public class AuthControllerTest {
         mvc.perform(delete("/auth/user/{id}", 1L))
                 .andExpect(status().isOk());
     }
+
+    // ==============JWT 관련 테스트 ==============
+
+    @Test
+    @DisplayName("POST /auth/login - JWT 토큰 생성 확인")
+    void login_withJWT_tokenGeneration() throws Exception {
+        var req = Map.of(
+                "email", "alice@test.com",
+                "password", "pw123"
+        );
+
+        String mockToken = "mock.jwt.token";
+        var userResponse = new UserResponseDTO(1L, "alice", "alice@test.com");
+
+        given(userService.findUserByEmail("alice@test.com")).willReturn(userResponse);
+        given(jwtUtil.generateAccessToken(1L, "alice@test.com")).willReturn(mockToken);
+
+        mvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(om.writeValueAsString(req)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.accessToken").value(mockToken))
+                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.data.expiresIn").value(14400));
+
+        // JWT 토큰 생성 메서드가 호출되었는지 검증
+        verify(jwtUtil, times(1)).generateAccessToken(1L, "alice@test.com");
+    }
+
+    @Test
+    @DisplayName("POST /auth/logout - 로그아웃 응답 확인")
+    void logout_success() throws Exception {
+        mvc.perform(post("/auth/logout"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.message").value("로그아웃되었습니다. 클라이언트에서 토큰을 삭제해주세요."))
+                .andExpect(jsonPath("$.data.instruction").value("localStorage에서 accessToken을 제거하세요."));
+    }
+
 }

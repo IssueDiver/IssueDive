@@ -8,15 +8,14 @@ import java.time.LocalDateTime;
  * @param data response
  * @param timestamp now()
  */
-public record ApiResponse<T>(
+public record ApiCommonResponse<T>(
         boolean success,
         T data,
         String timestamp
 ) {
 
-    public static <T> ApiResponse<T> ok(T data) {
-        return new ApiResponse<>(true, data,
+    public static <T> ApiCommonResponse<T> ok(T data) {
+        return new ApiCommonResponse<>(true, data,
                 LocalDateTime.now().toString());
     }
 }
-
