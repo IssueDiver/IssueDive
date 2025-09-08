@@ -63,7 +63,7 @@ class LabelControllerTest {
     void createLabel_success() throws Exception {
         // given: 서비스가 반환할 Mock 응답 데이터 생성
         LabelResponse mockResponse = LabelResponse.builder().id(10L).name("bug").color("#FF0000")
-                .openCount(0L)  //새 라벨은 openCount = 0
+                .issueOpenCount(0L)  //새 라벨은 openCount = 0
                 .build();
         Mockito.when(labelService.createLabel(any(CreateLabelRequest.class))).thenReturn(mockResponse);
 
@@ -84,7 +84,7 @@ class LabelControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(10))
                 .andExpect(jsonPath("$.data.name").value("bug"))
-                .andExpect(jsonPath("$.data.openCount").value(0));  //검증 추가
+                .andExpect(jsonPath("$.data.issueOpenCount").value(0));  //검증 추가
     }
 
     @Test
@@ -112,8 +112,8 @@ class LabelControllerTest {
     void getLabels_success() throws Exception {
         // given
         List<LabelResponse> mockList = List.of(
-                LabelResponse.builder().id(1L).name("bug").openCount(2L).build(),
-                LabelResponse.builder().id(2L).name("feature").openCount(0L).build()
+                LabelResponse.builder().id(1L).name("bug").issueOpenCount(2L).build(),
+                LabelResponse.builder().id(2L).name("feature").issueOpenCount(0L).build()
         );
         Mockito.when(labelService.getLabels()).thenReturn(mockList);
 
@@ -123,9 +123,9 @@ class LabelControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data[0].name").value("bug"))
-                .andExpect(jsonPath("$.data[0].openCount").value(2))    //count 검증 추가
+                .andExpect(jsonPath("$.data[0].issueOpenCount").value(2))    //count 검증 추가
                 .andExpect(jsonPath("$.data[1].name").value("feature"))
-                .andExpect(jsonPath("$.data[1].openCount").value(0));   //count 검증 추가
+                .andExpect(jsonPath("$.data[1].issueOpenCount").value(0));   //count 검증 추가
     }
 
     @Test
@@ -133,7 +133,7 @@ class LabelControllerTest {
     void getLabel_success() throws Exception {
         // given
         LabelResponse mockResponse = LabelResponse.builder().id(10L).name("bug").color("#FF0000")
-                .openCount(5L)  //OPEN이슈 5개
+                .issueOpenCount(5L)  //OPEN이슈 5개
                 .build();
         Mockito.when(labelService.getLabel(10L)).thenReturn(mockResponse);
 
@@ -142,7 +142,7 @@ class LabelControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(10))
                 .andExpect(jsonPath("$.data.name").value("bug"))
-                .andExpect(jsonPath("$.data.openCount").value(5));  //count 검증 추가
+                .andExpect(jsonPath("$.data.issueOpenCount").value(5));  //count 검증 추가
     }
 
     @Test
@@ -221,7 +221,9 @@ class LabelControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value(issueId));
+                .andExpect(jsonPath("$.data.id").value(issueId))
+                .andExpect(jsonPath("$.data.labels[0].id").value(10))
+                .andExpect(jsonPath("$.data.labels[1].id").value(20));
 
         // issueLabelService의 메서드가 정확한 인자들로 호출되었는지 검증
         Mockito.verify(issueLabelService).addLabelsToIssue(issueId, labelIds);
@@ -233,8 +235,8 @@ class LabelControllerTest {
         // given
         Long issueId = 1L;
         Long labelId = 20L;
-        LabelResponse mockResponse = LabelResponse.builder().id(labelId).name("feature")
-                .openCount(1L)  //제거 후 OPEN 이슈 1개
+        IssueLabelsResponse mockResponse = IssueLabelsResponse.builder().id(issueId)
+                .labels(List.of(new IssueLabelsResponse.LabelSummary(labelId, "feature", "#007bff")))
                 .build();
         Mockito.when(issueLabelService.deleteLabelFromIssue(issueId, labelId)).thenReturn(mockResponse);
 
@@ -242,8 +244,10 @@ class LabelControllerTest {
         mockMvc.perform(delete("/issues/{issueId}/labels/{labelId}", issueId, labelId)
                         .with(csrf()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value(labelId))
-                .andExpect(jsonPath("$.data.openCount").value(1));  //count 검증 추가
+                .andExpect(jsonPath("$.data.id").value(issueId))
+                .andExpect(jsonPath("$.data.labels[0].id").value(labelId))
+                .andExpect(jsonPath("$.data.labels[0].name").value("feature"))
+                .andExpect(jsonPath("$.data.labels[0].color").value("#007bff"));
 
         Mockito.verify(issueLabelService).deleteLabelFromIssue(issueId, labelId);
     }

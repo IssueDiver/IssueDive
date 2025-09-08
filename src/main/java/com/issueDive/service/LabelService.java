@@ -28,7 +28,8 @@ public class LabelService {
     public LabelResponse createLabel(CreateLabelRequest request) {
         if (labelRepository.existsByNameIgnoreCase(request.getName())) {
             throw new ValidationException(ErrorCode.DuplicateLabel,
-                    "Label with name " + request.getName() + " already exists");
+                    "Label with name " + request.getName() + " alre" +
+                            "ady exists");
         }
         Label savedLabel = labelRepository.save(
                 Label.builder()
@@ -38,8 +39,8 @@ public class LabelService {
                         .build()
         );
 
-        long openCount = issueLabelRepository.countByLabelAndIssue_Status(savedLabel, IssueStatus.OPEN);
-        return LabelResponse.from(savedLabel,  openCount);
+        long issueOpenCount = issueLabelRepository.countByLabelAndIssue_Status(savedLabel, IssueStatus.OPEN);
+        return LabelResponse.from(savedLabel,  issueOpenCount);
     }
 
     //라벨 목록 조회
@@ -49,8 +50,8 @@ public class LabelService {
         List<LabelResponse> responses = new ArrayList<>();
 
         for (Label label : labels) {
-            long openCount = issueLabelRepository.countByLabelAndIssue_Status(label, IssueStatus.OPEN);
-            responses.add(LabelResponse.from(label, openCount));
+            long issueOpenCount = issueLabelRepository.countByLabelAndIssue_Status(label, IssueStatus.OPEN);
+            responses.add(LabelResponse.from(label, issueOpenCount));
         }
         return responses;
     }
@@ -61,8 +62,8 @@ public class LabelService {
         Label label = labelRepository.findById(id)
                 .orElseThrow(() -> new LabelNotFoundException("Label not found: id=" + id));
 
-        long openCount = issueLabelRepository.countByLabelAndIssue_Status(label, IssueStatus.OPEN);
-        return LabelResponse.from(label,  openCount);
+        long issueOpenCount = issueLabelRepository.countByLabelAndIssue_Status(label, IssueStatus.OPEN);
+        return LabelResponse.from(label,  issueOpenCount);
     }
 
     //라벨 수정
@@ -89,9 +90,9 @@ public class LabelService {
         }
 
         Label updatedLabel = labelRepository.save(label);
-        long openCount = issueLabelRepository.countByLabelAndIssue_Status(label, IssueStatus.OPEN);
+        long issueOpenCount = issueLabelRepository.countByLabelAndIssue_Status(label, IssueStatus.OPEN);
 
-        return LabelResponse.from(updatedLabel, openCount);
+        return LabelResponse.from(updatedLabel, issueOpenCount);
     }
 
     //라벨 삭제
