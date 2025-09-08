@@ -20,6 +20,7 @@ public class IssueLabelsResponse {
     public static class LabelSummary {
         private Long id;
         private String name;
+        private String color;
     }
 
     public static IssueLabelsResponse of(Long issueId, List<Label> labels) {
@@ -28,6 +29,7 @@ public class IssueLabelsResponse {
             summaries.add(LabelSummary.builder()
                     .id(label.getId())
                     .name(label.getName())
+                    .color(label.getColor())
                     .build());
         }
 

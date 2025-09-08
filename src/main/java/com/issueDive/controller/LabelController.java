@@ -114,10 +114,10 @@ public class LabelController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 이슈 또는 레이블 관계", content = @Content)
     })
     @DeleteMapping("/issues/{issueId}/labels/{labelId}")
-    public ResponseEntity<ApiCommonResponse<LabelResponse>> deleteLabelFromIssue(
+    public ResponseEntity<ApiCommonResponse<IssueLabelsResponse>> deleteLabelFromIssue(
             @Parameter(description = "이슈 ID", required = true) @PathVariable Long issueId,
             @Parameter(description = "제거할 레이블 ID", required = true) @PathVariable Long labelId) {
-        LabelResponse data = issueLabelService.deleteLabelFromIssue(issueId, labelId);
+        IssueLabelsResponse data = issueLabelService.deleteLabelFromIssue(issueId, labelId);
         return ResponseEntity.ok(ApiCommonResponse.ok(data));
     }
 }
