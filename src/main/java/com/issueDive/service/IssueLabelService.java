@@ -2,10 +2,7 @@ package com.issueDive.service;
 
 import com.issueDive.dto.IssueLabelsResponse;
 import com.issueDive.dto.LabelResponse;
-import com.issueDive.entity.Issue;
-import com.issueDive.entity.IssueLabel;
-import com.issueDive.entity.IssueLabelId;
-import com.issueDive.entity.Label;
+import com.issueDive.entity.*;
 import com.issueDive.exception.IssueLabelNotFoundException;
 import com.issueDive.exception.LabelNotFoundException;
 import com.issueDive.exception.NotFoundException;
@@ -95,8 +92,8 @@ public class IssueLabelService {
         }
 
         issueLabelRepository.deleteByIssueAndLabel(issue, label);
-
-        return LabelResponse.from(label);
+        long openCount = issueLabelRepository.countByLabelAndIssue_Status(label, IssueStatus.OPEN);
+        return LabelResponse.from(label,  openCount);
     }
 
 }

@@ -15,16 +15,18 @@ public class LabelResponse {
     private String name;
     private String color;
     private String description;
+    private Long openCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static LabelResponse from(Label label) {
+    public static LabelResponse from(Label label, long openCount) {
 
         return LabelResponse.builder()
                 .id(label.getId())
                 .name(label.getName())
                 .color(label.getColor())
                 .description(label.getDescription())
+                .openCount(openCount)
                 .createdAt(label.getCreatedAt())
                 .updatedAt(label.getUpdatedAt())
                 .build();
