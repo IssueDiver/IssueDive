@@ -3,6 +3,7 @@ package com.issueDive.service;
 import com.issueDive.dto.CreateLabelRequest;
 import com.issueDive.dto.LabelResponse;
 import com.issueDive.dto.UpdateLabelRequest;
+import com.issueDive.entity.IssueStatus;
 import com.issueDive.entity.Label;
 import com.issueDive.exception.ErrorCode;
 import com.issueDive.exception.LabelNotFoundException;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -26,7 +28,8 @@ public class LabelService {
     public LabelResponse createLabel(CreateLabelRequest request) {
         if (labelRepository.existsByNameIgnoreCase(request.getName())) {
             throw new ValidationException(ErrorCode.DuplicateLabel,
-                    "Label with name " + request.getName() + " already exists");
+                    "Label with name " + request.getName() + " alre" +
+                            "ady exists");
         }
         Label savedLabel = labelRepository.save(
                 Label.builder()
@@ -36,16 +39,21 @@ public class LabelService {
                         .build()
         );
 
-        return LabelResponse.from(savedLabel);
+        long issueOpenCount = issueLabelRepository.countByLabelAndIssue_Status(savedLabel, IssueStatus.OPEN);
+        return LabelResponse.from(savedLabel,  issueOpenCount);
     }
 
     //라벨 목록 조회
     @Transactional(readOnly = true)
     public List<LabelResponse> getLabels() {
+        List<Label> labels = labelRepository.findAll();
+        List<LabelResponse> responses = new ArrayList<>();
 
-        return labelRepository.findAll().stream()
-                .map(LabelResponse::from)
-                .toList();
+        for (Label label : labels) {
+            long issueOpenCount = issueLabelRepository.countByLabelAndIssue_Status(label, IssueStatus.OPEN);
+            responses.add(LabelResponse.from(label, issueOpenCount));
+        }
+        return responses;
     }
 
     //단일 라벨 조회
@@ -54,7 +62,8 @@ public class LabelService {
         Label label = labelRepository.findById(id)
                 .orElseThrow(() -> new LabelNotFoundException("Label not found: id=" + id));
 
-        return LabelResponse.from(label);
+        long issueOpenCount = issueLabelRepository.countByLabelAndIssue_Status(label, IssueStatus.OPEN);
+        return LabelResponse.from(label,  issueOpenCount);
     }
 
     //라벨 수정
@@ -81,8 +90,9 @@ public class LabelService {
         }
 
         Label updatedLabel = labelRepository.save(label);
+        long issueOpenCount = issueLabelRepository.countByLabelAndIssue_Status(label, IssueStatus.OPEN);
 
-        return LabelResponse.from(updatedLabel);
+        return LabelResponse.from(updatedLabel, issueOpenCount);
     }
 
     //라벨 삭제
@@ -98,4 +108,5 @@ public class LabelService {
 
         labelRepository.deleteById(id);
     }
+
 }

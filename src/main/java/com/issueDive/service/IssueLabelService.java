@@ -1,11 +1,7 @@
 package com.issueDive.service;
 
 import com.issueDive.dto.IssueLabelsResponse;
-import com.issueDive.dto.LabelResponse;
-import com.issueDive.entity.Issue;
-import com.issueDive.entity.IssueLabel;
-import com.issueDive.entity.IssueLabelId;
-import com.issueDive.entity.Label;
+import com.issueDive.entity.*;
 import com.issueDive.exception.IssueLabelNotFoundException;
 import com.issueDive.exception.LabelNotFoundException;
 import com.issueDive.exception.NotFoundException;
@@ -66,13 +62,13 @@ public class IssueLabelService {
             }
         }
 
-        List<Label> currentLabels = getLabelsOfIssue(issue);
+        List<Label> currentLabels = findLabelsByIssue(issue);
 
         return IssueLabelsResponse.of(issueId, currentLabels);
     }
 
     @Transactional(readOnly = true)
-    public List<Label> getLabelsOfIssue(Issue issue){
+    public List<Label> findLabelsByIssue(Issue issue){
         List<IssueLabel> mappings = issueLabelRepository.findAllByIssue(issue);
         List<Label> currentLabels = new ArrayList<>();
         for (IssueLabel issueLabel : mappings) {
@@ -82,7 +78,7 @@ public class IssueLabelService {
     }
 
     @Transactional
-    public LabelResponse deleteLabelFromIssue(Long issueId, Long labelId){
+    public IssueLabelsResponse deleteLabelFromIssue(Long issueId, Long labelId){
         Issue issue = issueRepository.findById(issueId)
                 .orElseThrow(() -> new NotFoundException("Issue not found"));
         Label label = labelRepository.findById(labelId)
@@ -96,7 +92,8 @@ public class IssueLabelService {
 
         issueLabelRepository.deleteByIssueAndLabel(issue, label);
 
-        return LabelResponse.from(label);
+        List<Label> currentLabels = findLabelsByIssue(issue);
+        return IssueLabelsResponse.of(issueId, currentLabels);
     }
 
 }
