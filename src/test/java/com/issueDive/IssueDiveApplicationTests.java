@@ -1,8 +1,10 @@
 package com.issueDive;
 
 import com.issueDive.entity.Issue;
+import com.issueDive.entity.IssueAssignee;
 import com.issueDive.entity.IssueStatus;
 import com.issueDive.entity.User;
+import com.issueDive.repository.IssueAssigneeRepository;
 import com.issueDive.repository.IssueRepository;
 import com.issueDive.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,9 +39,13 @@ class IssueDiveApplicationTests {
 	@Autowired
 	private UserRepository userRepository;
 
+	@Autowired
+	private IssueAssigneeRepository issueAssigneeRepository;
+
 	@BeforeEach
 	void setUp() {
 		// 각 테스트 실행 전에 데이터베이스를 비움
+		issueAssigneeRepository.deleteAll();
 		issueRepository.deleteAll();
 		userRepository.deleteAll();
 	}
@@ -57,12 +63,14 @@ class IssueDiveApplicationTests {
 		// given: DB에 테스트용 데이터를 저장
 		User author = userRepository.save(User.builder().username("author").email("author@example.com").password("password").build());
 		User assignee = userRepository.save(User.builder().username("assignee").email("assignee@example.com").password("password").build());
-		issueRepository.save(Issue.builder()
+
+		Issue savedIssue = issueRepository.save(Issue.builder()
 				.title("작성자가 지정된 오픈 이슈")
 				.status(IssueStatus.OPEN)
 				.author(author)
-				.assignee(assignee)
 				.build());
+		issueAssigneeRepository.save(new IssueAssignee(savedIssue, assignee));
+
 		issueRepository.save(Issue.builder()
 				.title("닫힌 이슈")
 				.status(IssueStatus.CLOSED)
@@ -73,7 +81,7 @@ class IssueDiveApplicationTests {
 		mockMvc.perform(get("/issues")
 						.param("status", "OPEN") // OPEN 상태인 이슈만 필터링
 						.param("authorId", author.getId().toString())
-						.param("assigneeId", assignee.getId().toString())
+						.param("assigneeIds", assignee.getId().toString())
 						.param("page", "0"))
 				.andDo(print()) // 응답 내용을 콘솔에 출력
 				// then: 실제 DB에서 조회된 결과 검증
