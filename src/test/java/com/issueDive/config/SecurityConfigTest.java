@@ -1,7 +1,7 @@
 package com.issueDive.config;
 
+import com.issueDive.dto.IssueResponse;
 import com.issueDive.security.CustomUserDetailsService;
-import com.issueDive.security.JwtAuthenticationFilter;
 import com.issueDive.service.IssueService;
 import com.issueDive.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,15 +10,19 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.*;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
@@ -29,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Sql("/test-data.sql")
 public class SecurityConfigTest {
     @Autowired
     private MockMvc mockMvc;
@@ -107,11 +112,18 @@ public class SecurityConfigTest {
 
     @Test
     @DisplayName("유효한 JWT 토큰으로 보호된 URL(POST /issues) 접근 허용")
+    @WithMockUser(username = "test@example.com", authorities = {"USER"})
     void protectedUrl_WithValidToken_Allowed() throws Exception {
         // given
         given(jwtUtil.getUserEmailFromToken(VALID_TOKEN)).willReturn(USER_EMAIL);
         given(jwtUtil.validateToken(VALID_TOKEN, USER_EMAIL)).willReturn(true);
         given(customUserDetailsService.loadUserByUsername(USER_EMAIL)).willReturn(userDetails);
+
+        IssueResponse dummyResponse = new IssueResponse(
+                1L, "Test Issue", "Test Description", "OPEN", 1L,
+                List.of(), List.of(), LocalDateTime.now(), LocalDateTime.now()
+        );
+        given(issueService.createIssue(any(), any())).willReturn(dummyResponse);
 
         String validIssueJson = "{\"title\":\"Test Issue\",\"description\":\"Test Description\"}";
 
@@ -176,20 +188,21 @@ public class SecurityConfigTest {
     @Test
     @DisplayName("세션 정책 STATELESS 확인")
     void sessionPolicy_Stateless() throws Exception {
-        // 첫 번째 요청
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"test@test.com\", \"password\":\"password\"}"))
-                .andDo(print())
-                .andExpect(status().isOk());
-
-        // 두 번째 요청도 GET /issues로 보내면 permitAll 이므로 성공합니다.
-        // 대신 보호된 경로인 POST /issues로 보내서 세션이 유지되지 않음을 확인합니다.
+        // 보호된 URL에 인증 없이 요청을 보내 세션(JSESSIONID)이 생성되지 않는지 확인
         mockMvc.perform(post("/issues")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Test\"}"))
                 .andDo(print())
-                .andExpect(status().isForbidden()); // 세션이 없으므로 인증 실패
+                .andExpect(status().isForbidden()) // 1. 인증 실패 확인
+                .andExpect(cookie().doesNotExist("JSESSIONID")); // 2. JSESSIONID 쿠키가 없는지 확인
+
+        // 동일한 요청을 한 번 더 보내도 세션이 유지되지 않음을 재차 확인
+        mockMvc.perform(post("/issues")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Test\"}"))
+                .andDo(print())
+                .andExpect(status().isForbidden())
+                .andExpect(cookie().doesNotExist("JSESSIONID"));
     }
 
     @Test
@@ -207,10 +220,17 @@ public class SecurityConfigTest {
 
     @Test
     @DisplayName("HTTP 메서드별 접근 제어 - POST")
+    @WithMockUser(username = "test@example.com", authorities = {"USER"})
     void httpMethod_POST_Allowed() throws Exception {
         given(jwtUtil.getUserEmailFromToken(VALID_TOKEN)).willReturn(USER_EMAIL);
         given(jwtUtil.validateToken(VALID_TOKEN, USER_EMAIL)).willReturn(true);
         given(customUserDetailsService.loadUserByUsername(USER_EMAIL)).willReturn(userDetails);
+
+        IssueResponse dummyResponse = new IssueResponse(
+                1L, "Test Issue", "Test Description", "OPEN", 1L,
+                List.of(), List.of(), LocalDateTime.now(), LocalDateTime.now()
+        );
+        given(issueService.createIssue(any(), any())).willReturn(dummyResponse);
 
         String validIssueJson = "{\"title\":\"Test Issue\",\"description\":\"Test Description\"}";
 
