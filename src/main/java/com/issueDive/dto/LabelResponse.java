@@ -5,12 +5,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Getter
 @AllArgsConstructor
 @Builder
-public class LabelResponse {
+public class LabelResponse implements Serializable {
     private Long id;
     private String name;
     private String color;
