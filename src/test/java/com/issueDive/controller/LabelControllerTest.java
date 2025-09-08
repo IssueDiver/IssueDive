@@ -210,7 +210,11 @@ class LabelControllerTest {
         // given
         Long issueId = 1L;
         List<Long> labelIds = List.of(10L, 20L);
-        IssueLabelsResponse mockResponse = IssueLabelsResponse.builder().id(issueId).build();
+        List<IssueLabelsResponse.LabelSummary> mockLabels = List.of(
+                new IssueLabelsResponse.LabelSummary(10L, "bug", "#d73a4a"),
+                new IssueLabelsResponse.LabelSummary(20L, "feature", "#007bff")
+        );
+        IssueLabelsResponse mockResponse = IssueLabelsResponse.builder().id(issueId).labels(mockLabels).build();
         Mockito.when(issueLabelService.addLabelsToIssue(issueId, labelIds)).thenReturn(mockResponse);
 
         String requestBody = "[10, 20]";

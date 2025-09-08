@@ -40,12 +40,10 @@ public class Comment {
         @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
         private List<Comment> children = new ArrayList<>();
 
-        @Column(name = "created_at", updatable = false, insertable = false,
-                columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+        @Column(name = "created_at", updatable = false, insertable = false)
         private LocalDateTime createdAt;
 
-        @Column(name = "updated_at", insertable = false,
-                columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
+        @Column(name = "updated_at", insertable = false)
         private LocalDateTime updatedAt;
 
         public void changeDescription(String description) { this.description = description; }

@@ -25,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.http.MediaType;
 
 @SpringBootTest // 전체 스프링 컨텍스트 로딩
-@AutoConfigureMockMvc(addFilters = false) // 필터(보안) 비활성화
+@AutoConfigureMockMvc //(addFilters = false) // 필터(보안) 비활성화
 public class GlobalExceptionHandlerTest {
 
     @Autowired
