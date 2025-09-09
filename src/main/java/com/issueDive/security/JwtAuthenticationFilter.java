@@ -79,7 +79,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
     }
 
     /**
-     * 에러 응답 설정
+     * 에러 응답 설정..git a
      */
     private void setErrorResponse(HttpServletResponse response, String message) throws IOException {
         response.setContentType("application/json;charset=UTF-8");
