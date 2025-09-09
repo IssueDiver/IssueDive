@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -24,6 +24,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
+    private final TokenBlackListService tokenBlackListService;
+    private static final Set<String> PUBLIC_PREFIXES = Set.of(
+            "/auth/signup", "/auth/login", "/swagger-ui", "/v3/api-docs"
+    );
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String uri = request != null ? request.getRequestURI() : null; // 9월9일 수정: NPE 방어
+        if (uri == null) return false; // 안전하게 필터 적용  // 9월9일 수정
+        return PUBLIC_PREFIXES.stream().anyMatch(uri::startsWith);
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -34,7 +45,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
             String jwt = getJwtFromRequest(request);
 
             if (jwt != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
+                // 블랙리스트 체크 추가 (여기만 새로 추가)
+                if (tokenBlackListService.isBlackListed(jwt)) {
+                    log.warn("Attempted to use blacklisted token");
+                    setErrorResponse(response, "유효하지 않은 토큰입니다.");
+                    return;
+                }
                 // JWT에서 이메일 추출
                 String email = jwtUtil.getUserEmailFromToken(jwt);
 
@@ -59,7 +75,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
             }
         } catch (Exception e) {
             log.error("JWT 인증 처리 중 오류 발생", e);
-            setErrorResponse(response, "토큰 처리 중 오류가 발생했습니다.");
+            setErrorResponse(response, "유효하지 않은 토큰입니다.");
             return;
         }
 
@@ -94,17 +110,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
                 "timestamp": "%s"
             }
             """, message, java.time.LocalDateTime.now().toString()));
-    }
-
-    /**
-     * 공개 URL에 대해서는 필터를 적용하지 않음 (9월1일 변경 - RefreshToken URL 제거)
-     */
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        return path.startsWith("/auth/signup") ||
-                path.startsWith("/auth/login") ||
-                path.startsWith("/swagger-ui") ||
-                path.startsWith("/v3/api-docs");
     }
 }

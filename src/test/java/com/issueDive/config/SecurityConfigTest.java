@@ -274,6 +274,6 @@ public class SecurityConfigTest {
                         .header("Authorization", "Bearer " + invalidToken))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("토큰 처리 중 오류가 발생했습니다.")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("유효하지 않은 토큰입니다.")));
     }
 }

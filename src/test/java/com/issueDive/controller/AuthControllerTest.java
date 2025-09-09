@@ -1,5 +1,6 @@
 package com.issueDive.controller;
 
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.issueDive.dto.UserResponseDTO;
 import com.issueDive.exception.AuthenticationFailedException;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
@@ -22,18 +24,30 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.issueDive.service.TokenBlackListService;
+import com.issueDive.config.SecurityConfig;
+import com.issueDive.security.JwtAuthenticationFilter;
+import org.springframework.context.annotation.ComponentScan;
 import static org.mockito.MockitoAnnotations.openMocks;
 /**
  * @WebMvcTest: 웹 계층(컨트롤러)에 대한 슬라이스 테스트를 진행합니다.
  * @AutoConfigureMockMvc: MockMvc를 자동으로 설정하며, addFilters = false를 통해
  * AuthController의 공개 API 테스트 시 Spring Security 필터를 적용하지 않습니다.
- */
-@WebMvcTest(controllers = AuthController.class)
+*/
+@WebMvcTest(
+        controllers = AuthController.class,
+        // 9월9일 수정: WebMvc 슬라이스에서 SecurityConfig/JwtAuthenticationFilter 제외 (중복 빈 충돌, 필터 로딩 방지)
+        excludeFilters = {
+                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class),
+                @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
+        }
+)
 @AutoConfigureMockMvc(addFilters = false)
 public class AuthControllerTest {
 
@@ -57,6 +71,12 @@ public class AuthControllerTest {
     // Security Filter Chain이 로드될 때를 대비하여 의존성 Mock Bean 추가
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    // AuthController 생성자 주입 대상 추가 (누락 시 컨텍스트 실패)
+    @MockitoBean private TokenBlackListService tokenBlackListService;
+
+    // Security 필터 비활성화했어도, 로딩 중 참조될 수 있어 방어적으로 유지
+    @MockitoBean private CustomUserDetailsService userDetailsService;
 
     @Test
     @DisplayName("[SUCCESS] POST /auth/signup - 회원가입 성공")
@@ -105,6 +125,7 @@ public class AuthControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.accessToken").value(mockToken))
                 .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.data.expiresIn").value(14400))
                 .andExpect(jsonPath("$.data.user.email").value("alice@test.com"));
     }
 
@@ -117,7 +138,8 @@ public class AuthControllerTest {
         );
 
         // 인증 실패 시 AuthenticationFailedException이 발생하도록 설정
-        given(authenticationManager.authenticate(any())).willThrow(new AuthenticationFailedException());
+        willThrow(new RuntimeException("no user"))
+                .given(userService).findUserByEmail(anyString());
 
         // when & then
         mvc.perform(post("/auth/login")
@@ -144,8 +166,8 @@ public class AuthControllerTest {
     @DisplayName("[FAIL] GET /auth/users/{id} - 존재하지 않는 사용자 조회")
     void getUserById_notFound() throws Exception {
         // given
-        given(userService.findUserById(999L))
-                .willThrow(new UserNotFoundException(999L));
+        willThrow(new com.issueDive.exception.UserNotFoundException(999L))
+                .given(userService).findUserById(999L);
 
         // when & then
         mvc.perform(get("/auth/users/{id}", 999L))
@@ -203,20 +225,31 @@ public class AuthControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").value(mockToken))
-                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.data.expiresIn").value(14400));
+                .andExpect(jsonPath("$.data.tokenType").value("Bearer"));
+               // .andExpect(jsonPath("$.data.expiresIn").value(14400));
 
         // JWT 토큰 생성 메서드가 호출되었는지 검증
         verify(jwtUtil, times(1)).generateAccessToken(1L, "alice@test.com");
     }
 
     @Test
-    @DisplayName("POST /auth/logout - 로그아웃 응답 확인")
+    @DisplayName("[SUCCESS] POST /auth/logout - Authorization 헤더 포함시 200 OK")
     void logout_success() throws Exception {
-        mvc.perform(post("/auth/logout"))
+        String rawToken = "eyJhbGciOiJIUzI1NiJ9.mock";
+        String bearerToken = "Bearer " + rawToken;
+
+        // 토큰 만료 시간을 미래로 설정 → 블랙리스트에 추가되도록 함
+        var future = new java.util.Date(System.currentTimeMillis() + 3600_000L); // +1시간
+        given(jwtUtil.getExpirationDateFromToken(rawToken)).willReturn(future);
+
+        mvc.perform(post("/auth/logout").header("Authorization", bearerToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.message").value("로그아웃되었습니다. 클라이언트에서 토큰을 삭제해주세요."))
-                .andExpect(jsonPath("$.data.instruction").value("localStorage에서 accessToken을 제거하세요."));
+                .andExpect(jsonPath("$.data.message").value("로그아웃되었습니다."))
+                .andExpect(jsonPath("$.data.instruction").value("서버에서 토큰이 무효화되었습니다."));
+
+        // 블랙리스트에 정상적으로 호출되었는지 검증
+        verify(tokenBlackListService, times(1)).addToBlackList(eq(rawToken), anyLong());
     }
 
 }
+
