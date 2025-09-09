@@ -17,9 +17,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Set;
 
-import com.issueDive.service.TokenBlackListService;
-
-
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -48,18 +45,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
             String jwt = getJwtFromRequest(request);
 
             if (jwt != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
                 // 블랙리스트 체크 추가 (여기만 새로 추가)
                 if (tokenBlackListService.isBlackListed(jwt)) {
                     log.warn("Attempted to use blacklisted token");
                     setErrorResponse(response, "유효하지 않은 토큰입니다.");
                     return;
                 }
-
                 // JWT에서 이메일 추출
                 String email = jwtUtil.getUserEmailFromToken(jwt);
 
-                // AccessToken만 사용하므로 타입 체크 제거
+                // 9월1일 변경 - AccessToken만 사용하므로 타입 체크 제거
 
                 // 토큰 유효성 검증
                 if (jwtUtil.validateToken(jwt, email)) {
