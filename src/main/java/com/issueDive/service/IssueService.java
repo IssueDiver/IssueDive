@@ -12,9 +12,13 @@ import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.util.Collections;
 import java.util.List;
@@ -40,6 +44,10 @@ public class IssueService {
      * @param authorId 작성자 user id
      * @return 생성된 이슈 dto
      */
+    @Caching(evict = {
+            @CacheEvict(value = "issues", allEntries = true),
+            @CacheEvict(value = "issue_navigation", allEntries = true)
+    }) // 'issues'와 'issue_navigation' 캐시를 비웁니다.
     public IssueResponse createIssue(CreateIssueRequest request, Long authorId) {
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
@@ -178,6 +186,7 @@ public class IssueService {
      * @return 조회한 이슈 dto
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = "issue", key = "#id")
     public IssueResponse getIssue(Long id) {
         Issue issue = issueRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new NotFoundException("Issue not found"));
@@ -191,6 +200,13 @@ public class IssueService {
      * @return 수정한 이슈 dto
      */
     @Transactional
+    @Caching(
+            put = { @CachePut(value = "issue", key = "#id") }, // 'issue' 캐시는 최신 내용으로 업데이트합니다.
+            evict = {
+                    @CacheEvict(value = "issues", allEntries = true),
+                    @CacheEvict(value = "issue_navigation", allEntries = true)
+            } // 'issues'와 'issue_navigation' 목록 캐시는 그냥 비웁니다.
+    )
     public IssueResponse updateIssue(Long id, UpdateIssueRequest request) {
         Issue issue = issueRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new NotFoundException("Issue not found"));
@@ -229,6 +245,13 @@ public class IssueService {
      * @param status 변경할 상태 (OPEN, IN_PROGRESS, CLOSED)
      * @return 상태가 변경된 IssueResponse
      */
+    @Caching(
+            put = { @CachePut(value = "issue", key = "#id") },
+            evict = {
+                    @CacheEvict(value = "issues", allEntries = true),
+                    @CacheEvict(value = "issue_navigation", allEntries = true)
+            }
+    )
     public IssueResponse changeIssueStatus(Long id, String status) {
         Issue issue = issueRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new NotFoundException("Issue not found"));
@@ -249,6 +272,13 @@ public class IssueService {
      * 삭제
      * @param id 삭제할 이슈 id
      */
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "issue", key = "#id"),
+                    @CacheEvict(value = "issues", allEntries = true),
+                    @CacheEvict(value = "issue_navigation", allEntries = true)
+            }
+    )
     public void deleteIssue(Long id) {
         if (!issueRepository.existsById(id)) {
             throw new NotFoundException("Issue not found");
@@ -263,6 +293,7 @@ public class IssueService {
      * @return 이전/다음 이슈 ID를 담은 DTO
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = "issue_navigation", key = "#currentIssueId + '-' + #filter.toString()")
     public IssueNavigationResponse getIssueNavigation(Long currentIssueId, IssueFilterRequest filter) {
         // 1. 목록 조회와 동일한 필터, 정렬 조건을 가져옵니다.
         BooleanBuilder builder = createFilterBuilder(filter);

@@ -54,3 +54,7 @@ gradle.properties
 **/secrets.properties
 **/*.secret
 **/jwt.properties
+
+#성능 테스트 파일
+**/DataLoader.java
+test.js
