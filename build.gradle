@@ -84,14 +84,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     // Micrometer (Prometheus 연동을 위함)
     implementation 'io.micrometer:micrometer-registry-prometheus'
-
-    //reids 의존성 추가
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'redis.clients:jedis'
-
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.mockito:mockito-core'
-    testImplementation 'org.mockito:mockito-junit-jupiter'
 }
 
 // Query DSL 설정
