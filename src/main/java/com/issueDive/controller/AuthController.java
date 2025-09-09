@@ -1,6 +1,5 @@
 package com.issueDive.controller;
 
-import com.issueDive.service.TokenBlackListService;
 import com.issueDive.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,12 +13,10 @@ import com.issueDive.dto.*;
 import com.issueDive.service.UserService;
 import jakarta.validation.Valid;
 import lombok.*;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -29,13 +26,11 @@ import com.issueDive.util.JwtUtil;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-@Slf4j
 public class
 AuthController {
     private final UserService userService;
     // private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
-    private final TokenBlackListService tokenBlackListService;
 
     @Operation(summary = "회원가입", description = "새로운 사용자를 등록합니다.")
     @ApiResponses({
@@ -78,39 +73,21 @@ AuthController {
     }
 
 
-    @Operation(summary = "로그아웃", description = "Access Token을 블랙리스트에 추가하고 Refresh Token을 삭제하여 로그아웃 처리합니다.")
+    @Operation(summary = "로그아웃", description = "서버 측에서는 별도의 처리가 없으며, 클라이언트에서 토큰을 삭제해야 합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "로그아웃 성공")
     })
     @PostMapping("/logout")
-    public ResponseEntity<ApiCommonResponse<Map<String, String>>> logout(@Parameter(description = "Authorization 헤더의 Bearer Token", required = true)
-                                                                             @RequestHeader("Authorization") String bearerToken) {
+    public ResponseEntity<ApiCommonResponse<Map<String, String>>> logout() {
         //JWT는 stateless하므로 서버에서 특별한 로그아웃 처리 불필요
-        try {
-            // Bearer 접두사 제거
-            String token = bearerToken.substring(7);
 
-            // 토큰의 남은 유효시간 계산
-            Date expiration = jwtUtil.getExpirationDateFromToken(token);
-            long remainingSeconds = (expiration.getTime() - System.currentTimeMillis()) / 1000;
+        Map<String, String> responseData = Map.of(
+                "message", "로그아웃되었습니다. 클라이언트에서 토큰을 삭제해주세요.",
+                "instruction", "localStorage에서 accessToken을 제거하세요."
+        );
 
-            if (remainingSeconds > 0) {
-                // 토큰을 블랙리스트에 추가
-                tokenBlackListService.addToBlackList(token, remainingSeconds);
-                log.info("Token is added to blacklist. Remaining time: {}seconds", remainingSeconds);
-            }
-
-            Map<String, String> responseData = Map.of(
-                    "message", "로그아웃되었습니다.",
-                    "instruction", "서버에서 토큰이 무효화되었습니다."
-            );
-
-            ApiCommonResponse<Map<String, String>> response = ApiCommonResponse.ok(responseData);
-            return ResponseEntity.ok(response);
-        }catch (Exception e) {
-            log.error("Error during logout process", e);
-            throw new RuntimeException("로그아웃 처리 실패");
-        }
+        ApiCommonResponse<Map<String, String>> response = ApiCommonResponse.ok(responseData);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "사용자 정보 조회", description = "ID로 특정 사용자의 정보를 조회합니다.")

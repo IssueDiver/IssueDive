@@ -32,7 +32,7 @@ import com.issueDive.security.JwtAuthenticationFilter;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    //private final CustomUserDetailsService userDetailsService; // DB 기반 인증
+//    private final CustomUserDetailsService userDetailsService; // DB 기반 인증
     private final JwtAuthenticationFilter jwtAuthenticationFilter; // JWT 필터
 
 
