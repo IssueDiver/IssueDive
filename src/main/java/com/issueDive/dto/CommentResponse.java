@@ -3,6 +3,7 @@ package com.issueDive.dto;
 import com.issueDive.entity.Comment;
 import lombok.*;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -11,7 +12,7 @@ import java.util.*;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class CommentResponse {
+public class CommentResponse implements Serializable {
 
     private Long id;
     private Long issueId;
