@@ -97,7 +97,7 @@ AuthController {
             if (remainingSeconds > 0) {
                 // 토큰을 블랙리스트에 추가
                 tokenBlackListService.addToBlackList(token, remainingSeconds);
-                log.info("토큰이 블랙리스트에 추가됨. 남은 시간: {}초", remainingSeconds);
+                log.info("Token is added to blacklist. Remaining time: {}seconds", remainingSeconds);
             }
 
             Map<String, String> responseData = Map.of(
@@ -108,7 +108,7 @@ AuthController {
             ApiCommonResponse<Map<String, String>> response = ApiCommonResponse.ok(responseData);
             return ResponseEntity.ok(response);
         }catch (Exception e) {
-            log.error("로그아웃 처리 중 오류", e);
+            log.error("Error during logout process", e);
             throw new RuntimeException("로그아웃 처리 실패");
         }
     }

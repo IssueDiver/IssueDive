@@ -35,7 +35,7 @@ public class TokenBlackListService {
                 TimeUnit.SECONDS
         );
 
-        log.info("토근이 블래리스트에 추가됨. 만료시간 {}초", expirationTimeInSeconds);
+        log.info("Token added to balcklist. Expires in {} seconds", expirationTimeInSeconds);
     }
 
     /**
@@ -56,7 +56,7 @@ public class TokenBlackListService {
     public void removeFromBlackList(String token){
         String key = BLACKLIST_PREFIX+token;
         redisTemplate.delete(key);
-        log.info("토근이 블랙리스트에서 제거되었습니다.");
+        log.info("Token is removed from blacklist.");
     }
 
 }

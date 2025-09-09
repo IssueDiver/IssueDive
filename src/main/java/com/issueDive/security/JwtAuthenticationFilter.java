@@ -41,8 +41,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
                 // 블랙리스트 체크 추가 (여기만 새로 추가)
                 if (tokenBlackListService.isBlackListed(jwt)) {
-                    log.warn("블랙리스트에 등록된 토큰 사용 시도");
-                    setErrorResponse(response, "로그아웃된 토큰입니다.");
+                    log.warn("Attempted to use blacklisted token");
+                    setErrorResponse(response, "Token has been logged out.");
                     return;
                 }
 
