@@ -42,23 +42,25 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.flywaydb:flyway-core'
-    implementation 'org.flywaydb:flyway-mysql'
-    compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'com.mysql:mysql-connector-j'
-    annotationProcessor 'org.projectlombok:lombok'
+
+    // --- Flyway ---
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql' // flywayClean 같은 명령어 직접 사용 시 필요. 라이브러리 지정.
+
+    // --- 테스트 의존성 ---
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:mysql'
     testImplementation 'com.h2database:h2'
-//    flywayPlugin 'org.flywaydb:flyway-mysql' // flywayClean 같은 명령어 직접 사용 시 필요. 라이브러리 지정.
+    runtimeOnly 'com.h2database:h2'
 
     // QueryDsl
     implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
@@ -69,21 +71,19 @@ dependencies {
     // API docs
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.11'
 
-    runtimeOnly 'com.h2database:h2'
-
     // JWT 의존성 추가
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
-    // @MockitoBean 지원을 위한 의존성
-    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-//    testImplementation 'org.mockito:mockito-core:5.11.0'
+    // --- 로깅 및 모니터링 ---
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator' // Spring Boot Actuator
+    implementation 'io.micrometer:micrometer-registry-prometheus' // Micrometer (Prometheus 연동을 위함)
 
-    // Spring Boot Actuator
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    // Micrometer (Prometheus 연동을 위함)
-    implementation 'io.micrometer:micrometer-registry-prometheus'
+    // XSS 방어를 위한 HTML Sanitizer 라이브러리
+    implementation 'com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20220608.1'
 }
 
 // Query DSL 설정

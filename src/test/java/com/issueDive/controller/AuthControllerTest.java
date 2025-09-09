@@ -65,7 +65,7 @@ public class AuthControllerTest {
         var requestBody = Map.of(
                 "username", "alice",
                 "email", "alice@test.com",
-                "password", "pw123"
+                "password", "password123"
         );
         var responseDto = new UserResponseDTO(1L, "alice", "alice@test.com");
 
@@ -88,7 +88,7 @@ public class AuthControllerTest {
         // given: 로그인 요청 데이터 설정
         var requestBody = Map.of(
                 "email", "alice@test.com",  //  ** LoginRequestDTO의 필드명인 'email'로 수정
-                "password", "pw123"
+                "password", "password123"
         );
         var userResponse = new UserResponseDTO(1L, "alice", "alice@test.com");
         var mockToken = "mock-access-token";
@@ -188,7 +188,7 @@ public class AuthControllerTest {
     void login_withJWT_tokenGeneration() throws Exception {
         var req = Map.of(
                 "email", "alice@test.com",
-                "password", "pw123"
+                "password", "password123"
         );
 
         String mockToken = "mock.jwt.token";
