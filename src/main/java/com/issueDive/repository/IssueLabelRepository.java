@@ -1,9 +1,6 @@
 package com.issueDive.repository;
 
-import com.issueDive.entity.Issue;
-import com.issueDive.entity.IssueLabel;
-import com.issueDive.entity.IssueLabelId;
-import com.issueDive.entity.Label;
+import com.issueDive.entity.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -15,8 +12,8 @@ public interface IssueLabelRepository extends JpaRepository<IssueLabel, IssueLab
     boolean existsByIssueAndLabel(Issue issue, Label label);
     void deleteByIssueAndLabel(Issue issue, Label label);
     List<IssueLabel> findAllByIssue(Issue issue);
-//    void deleteByLabelId(Long labelId);
-    long countByLabel(Label label);
+
+    long countByLabelAndIssue_Status(Label label, IssueStatus issueStatus);
 
     boolean existsByLabelId(Long labelId);
 

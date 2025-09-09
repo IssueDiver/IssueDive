@@ -70,7 +70,6 @@ public class SecurityConfig {
 
         // 프론트엔드 서버 주소 허용
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:5174"));
-//        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5174"));
         // 모든 HTTP 메서드 허용
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         // 모든 헤더 허용

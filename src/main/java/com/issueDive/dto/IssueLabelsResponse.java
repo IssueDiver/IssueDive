@@ -21,6 +21,7 @@ public class IssueLabelsResponse implements Serializable {
     public static class LabelSummary implements Serializable {
         private Long id;
         private String name;
+        private String color;
     }
 
     public static IssueLabelsResponse of(Long issueId, List<Label> labels) {
@@ -29,6 +30,7 @@ public class IssueLabelsResponse implements Serializable {
             summaries.add(LabelSummary.builder()
                     .id(label.getId())
                     .name(label.getName())
+                    .color(label.getColor())
                     .build());
         }
 

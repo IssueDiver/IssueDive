@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
 
 @Getter
 @AllArgsConstructor
@@ -16,18 +15,16 @@ public class LabelResponse implements Serializable {
     private String name;
     private String color;
     private String description;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Long issueOpenCount;
 
-    public static LabelResponse from(Label label) {
+    public static LabelResponse from(Label label, long issueOpenCount) {
 
         return LabelResponse.builder()
                 .id(label.getId())
                 .name(label.getName())
                 .color(label.getColor())
                 .description(label.getDescription())
-                .createdAt(label.getCreatedAt())
-                .updatedAt(label.getUpdatedAt())
+                .issueOpenCount(issueOpenCount)
                 .build();
     }
 }

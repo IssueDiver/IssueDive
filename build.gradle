@@ -95,6 +95,7 @@ clean{
 
 tasks.named('test') {
     useJUnitPlatform()
+    systemProperties(System.getProperties())
     jvmArgs '-Xshare:off'
 }
 
@@ -112,6 +113,8 @@ flyway {
     locations = ['filesystem:src/main/resources/db/migration']
     // cleanDisabled는 DB 연결 정보와 무관하므로 바깥에 두어도 안전합니다.
     cleanDisabled = false
+    // 테스트 프로퍼티 파일을 참조하도록 설정
+    // configFiles = ['src/test/resources/application-test.properties']
 }
 
 bootJar { archiveFileName = 'app.jar' }
