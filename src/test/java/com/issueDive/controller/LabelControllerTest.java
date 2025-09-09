@@ -1,6 +1,7 @@
 package com.issueDive.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.issueDive.config.TestWebMvcConfig;
 import com.issueDive.dto.CreateLabelRequest;
 import com.issueDive.dto.IssueLabelsResponse;
 import com.issueDive.dto.LabelResponse;
@@ -15,6 +16,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -36,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WithMockUser
 @AutoConfigureMockMvc
 @WebMvcTest(LabelController.class)
+@Import(TestWebMvcConfig.class)
 class LabelControllerTest {
 
     @Autowired
