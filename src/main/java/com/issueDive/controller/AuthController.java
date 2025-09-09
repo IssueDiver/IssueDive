@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
+//import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.issueDive.util.JwtUtil;
+
+import org.springframework.web.bind.annotation.RequestBody;
 
 @Tag(name = "Auth & User", description = "인증 및 사용자 관리 API")
 @RestController
@@ -43,7 +45,7 @@ AuthController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청 값 (중복된 이메일 등)", content = @Content)
     })
     @PostMapping("/signup")
-    public ResponseEntity<ApiCommonResponse<UserResponseDTO>> signUp(@RequestBody(description = "회원가입 정보", required = true, content = @Content(schema = @Schema(implementation = UserRequestDTO.class))) @Valid @org.springframework.web.bind.annotation.RequestBody UserRequestDTO request){
+    public ResponseEntity<ApiCommonResponse<UserResponseDTO>> signUp(@Valid @org.springframework.web.bind.annotation.RequestBody UserRequestDTO request){
         UserResponseDTO user = userService.signUp(request);
         ApiCommonResponse<UserResponseDTO> response = ApiCommonResponse.ok(user);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -55,7 +57,7 @@ AuthController {
             @ApiResponse(responseCode = "401", description = "인증 실패 (잘못된 이메일 또는 비밀번호)", content = @Content)
     })
     @PostMapping("/login")
-    public ResponseEntity<ApiCommonResponse<JwtResponse>> login(@RequestBody(description = "로그인 정보", required = true, content = @Content(schema = @Schema(implementation = LoginRequestDTO.class))) @Valid @org.springframework.web.bind.annotation.RequestBody LoginRequestDTO request) {
+    public ResponseEntity<ApiCommonResponse<JwtResponse>> login(@Valid @org.springframework.web.bind.annotation.RequestBody LoginRequestDTO request) {
         try {
             // 인증된 사용자 정보 조회
             UserResponseDTO userResponse = userService.findUserByEmail(request.getEmail());
@@ -67,7 +69,7 @@ AuthController {
             JwtResponse jwtResponse = JwtResponse.of(
                     accessToken,
                     "Bearer",
-                    14400L, // 9월1일 변경 - 4시간 (초 단위)
+                    14400L, // 4시간 (초 단위)
                     userResponse
             );
             return ResponseEntity.ok(ApiCommonResponse.ok(jwtResponse));
@@ -84,7 +86,7 @@ AuthController {
     })
     @PostMapping("/logout")
     public ResponseEntity<ApiCommonResponse<Map<String, String>>> logout(@Parameter(description = "Authorization 헤더의 Bearer Token", required = true)
-                                                                             @RequestHeader("Authorization") String bearerToken) {
+                                                                             @RequestHeader(value = "Authorization", required = true) String bearerToken) {
         //JWT는 stateless하므로 서버에서 특별한 로그아웃 처리 불필요
         try {
             // Bearer 접두사 제거
