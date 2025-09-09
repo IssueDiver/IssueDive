@@ -29,7 +29,6 @@ import com.issueDive.util.JwtUtil;
 public class
 AuthController {
     private final UserService userService;
-    // private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
     @Operation(summary = "회원가입", description = "새로운 사용자를 등록합니다.")
