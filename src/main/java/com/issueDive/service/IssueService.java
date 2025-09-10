@@ -9,6 +9,7 @@ import com.issueDive.repository.*;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class IssueService {
 
     private final JPAQueryFactory queryFactory;
     private final QIssue qIssue = QIssue.issue;
+    private final QComment qComment = QComment.comment;
     private final IssueRepository issueRepository;
     private final UserRepository userRepository; // 작성자/담당자 유효성 검증용
     private final LabelRepository labelRepository;
@@ -92,17 +94,37 @@ public class IssueService {
     public Page<IssueResponse> getFilteredIssues(IssueFilterRequest filter) {
         BooleanBuilder builder = createFilterBuilder(filter);
         Pageable pageable = createPageable(filter);
-        OrderSpecifier<?> orderSpecifier = getSortOrder(filter.sort(), filter.order());
 
-        // 1. 조건에 맞는 이슈 ID 목록을 먼저 조회 (페이징 적용)
-        List<Long> ids = queryFactory
-                .select(qIssue.id)
-                .from(qIssue)
-                .where(builder)
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .orderBy(orderSpecifier)
-                .fetch();
+        List<Long> ids;
+
+        // 'commentCount' 정렬일 경우, 별도의 최적화된 쿼리를 사용합니다.
+        if ("commentCount".equalsIgnoreCase(filter.sort())) {
+            Order direction = "desc".equalsIgnoreCase(filter.order()) ? Order.DESC : Order.ASC;
+
+            ids = queryFactory
+                    .select(qIssue.id)
+                    .from(qIssue)
+                    .leftJoin(qIssue.comments, qComment) // comment 테이블과 JOIN
+                    .where(builder)
+                    .groupBy(qIssue.id) // issue ID로 그룹화
+                    .orderBy(qComment.count().as("comment_count").castToNum(Long.class).desc()) // 댓글 개수로 정렬
+                    .offset(pageable.getOffset())
+                    .limit(pageable.getPageSize())
+                    .fetch();
+        }
+        else { // 그 외의 정렬은 기존 방식을 사용
+
+            // 1. 조건에 맞는 이슈 ID 목록을 먼저 조회 (페이징 적용)
+            OrderSpecifier<?> orderSpecifier = getSortOrder(filter.sort(), filter.order());
+            ids = queryFactory
+                    .select(qIssue.id)
+                    .from(qIssue)
+                    .where(builder)
+                    .offset(pageable.getOffset())
+                    .limit(pageable.getPageSize())
+                    .orderBy(orderSpecifier)
+                    .fetch();
+        }
 
         if (ids.isEmpty()) {
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
@@ -112,10 +134,10 @@ public class IssueService {
         List<Issue> issues = issueRepository.findAllByIdInWithDetails(ids);
 
         // 정렬 유지를 위해 ID 목록 순서대로 다시 정렬
-        List<Issue> sortedIssues = ids.stream()
-                .flatMap(id -> issues.stream().filter(issue -> issue.getId().equals(id)))
-                .distinct()
-                .collect(Collectors.toList());
+        List<Long> finalIds = ids;
+        List<Issue> sortedIssues = issues.stream()
+                .sorted((i1, i2) -> Integer.compare(finalIds.indexOf(i1.getId()), finalIds.indexOf(i2.getId())))
+                .toList();
 
         // 3. 전체 카운트 조회
         long total = queryFactory
