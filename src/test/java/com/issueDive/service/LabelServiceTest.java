@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -107,28 +108,20 @@ class LabelServiceTest {
     @Test
     @DisplayName("라벨 목록 조회 성공")
     void getAllLabels_success() {
-        //given
-        Label label1 = Label.builder()
-                .id(1L)
-                .name("Bug")
-                .color("#FF0000")
-                .description("버그 관련 이슈")
-                .build();
-        Label label2 = Label.builder()
-                .id(2L)
-                .name("Feature")
-                .color("#00FF00")
-                .description("기능 추가")
-                .build();
+        // given
+        // List<Label>이 아닌 List<LabelResponse>를 Mocking
+        List<LabelResponse> mockResponses = List.of(
+                new LabelResponse(1L, "Bug", "#FF0000", "버그 관련 이슈", 2L),
+                new LabelResponse(2L, "Feature", "#00FF00", "기능 추가", 0L)
+        );
 
-        when(labelRepository.findAll()).thenReturn(List.of(label1, label2));
-        when(issueLabelRepository.countByLabelAndIssue_Status(label1, IssueStatus.OPEN)).thenReturn(2L);
-        when(issueLabelRepository.countByLabelAndIssue_Status(label2, IssueStatus.OPEN)).thenReturn(0L);
+        // findAll() 대신 새로 만든 findAllWithOpenIssueCount()를 Mocking
+        when(labelRepository.findAllWithOpenIssueCount()).thenReturn(mockResponses);
 
-        //when
+        // when
         List<LabelResponse> responses = labelService.getLabels();
 
-        //then
+        // then
         assertEquals(2, responses.size());
         assertEquals("Bug", responses.get(0).getName());
         assertEquals(2L,  responses.get(0).getIssueOpenCount());
@@ -136,7 +129,7 @@ class LabelServiceTest {
         assertEquals("Feature", responses.get(1).getName());
         assertEquals(0L,  responses.get(1).getIssueOpenCount());
 
-        verify(labelRepository).findAll();
+        verify(labelRepository).findAllWithOpenIssueCount();
     }
 
     /**
