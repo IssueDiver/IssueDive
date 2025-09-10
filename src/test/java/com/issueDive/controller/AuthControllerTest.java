@@ -254,4 +254,47 @@ public class AuthControllerTest {
         verify(jwtUtil, times(1)).generateAccessToken(1L, "alice@test.com");
         verify(jwtUtil, times(1)).generateRefreshToken(1L, "alice@test.com");
     }
+
+    // 9월10일 수정 - 토큰 갱신 테스트 추가
+    @Test
+    @DisplayName("[SUCCESS] POST /auth/refresh - 토큰 갱신 성공")
+    void refreshToken_success() throws Exception {
+        String refreshToken = "valid-refresh-token";
+        String newAccessToken = "new-access-token";
+        String userEmail = "alice@test.com";
+        var userResponse = new UserResponseDTO(1L, "alice", userEmail);
+
+        var requestBody = Map.of("refreshToken", refreshToken);
+
+        given(jwtUtil.getUserEmailFromToken(refreshToken)).willReturn(userEmail);
+        given(jwtUtil.isRefreshToken(refreshToken)).willReturn(true);
+        given(jwtUtil.validateToken(refreshToken, userEmail)).willReturn(true);
+        given(redisService.validateRefreshToken(userEmail, refreshToken)).willReturn(true);
+        given(userService.findUserByEmail(userEmail)).willReturn(userResponse);
+        given(jwtUtil.generateAccessToken(1L, userEmail)).willReturn(newAccessToken);
+
+        mvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(om.writeValueAsString(requestBody)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.accessToken").value(newAccessToken))
+                .andExpect(jsonPath("$.data.refreshToken").value(refreshToken))
+                .andExpect(jsonPath("$.data.user.email").value(userEmail));
+    }
+
+    // 9월10일 수정 - 유효하지 않은 리프레시 토큰 테스트 추가
+    @Test
+    @DisplayName("[FAIL] POST /auth/refresh - 유효하지 않은 리프레시 토큰")
+    void refreshToken_invalidToken() throws Exception {
+        String invalidToken = "invalid-refresh-token";
+        var requestBody = Map.of("refreshToken", invalidToken);
+
+        given(jwtUtil.getUserEmailFromToken(invalidToken)).willReturn("test@example.com");
+        given(jwtUtil.isRefreshToken(invalidToken)).willReturn(false);
+
+        mvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(om.writeValueAsString(requestBody)))
+                .andExpect(status().isUnauthorized());
+    }
 }

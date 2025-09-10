@@ -93,7 +93,13 @@ public class JwtUtil {
      * @return 만료 시간
      */
     public Date getExpirationDateFromToken(String token){
-        return getClaimsFromToken(token).getExpiration();
+        // ExpiredJwtException 처리 추가
+        try {
+            return getClaimsFromToken(token).getExpiration();
+        } catch (ExpiredJwtException e) {
+            // 4번 변경 - 만료된 토큰에서도 만료 시간 추출
+            return e.getClaims().getExpiration();
+        }
     }
 
     /**
@@ -102,11 +108,20 @@ public class JwtUtil {
      * @return 만료 여부
      */
     public boolean isTokenExpired(String token){
+        // 완전히 새로운 방식으로 만료 확인
         try {
-            final Date expiration = getExpirationDateFromToken(token);
-            return expiration.before(new Date());
+            // 파싱 시도만으로 만료 확인
+            Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token);
+            return false; //  파싱 성공 = 만료되지 않음
         } catch (ExpiredJwtException e) {
-            return true;  // 이미 만료된 토큰
+            return true;  // ExpiredJwtException = 만료됨
+        } catch (Exception e) {
+            // 다른 예외는 만료와 무관하므로 false 반환
+            System.err.println("Error checking token expiration: " + e.getMessage());
+            return false;
         }
     }
 
@@ -119,8 +134,18 @@ public class JwtUtil {
     public boolean validateToken(String token, String email){
         try{
             final String tokenEmail = getUserEmailFromToken(token);
-            return (tokenEmail.equals(email) && !isTokenExpired(token));
+            // 2번째 변경 - 디버깅 로그 추가
+            boolean emailMatches = tokenEmail.equals(email);
+            boolean notExpired = !isTokenExpired(token);
+
+            System.out.println("Token validation - Email from token: " + tokenEmail);
+            System.out.println("Token validation - Email to match: " + email);
+            System.out.println("Token validation - Email matches: " + emailMatches);
+            System.out.println("Token validation - Not expired: " + notExpired);
+
+            return emailMatches && notExpired;
         }catch (Exception e){
+            System.err.println("Token validation error: " + e.getMessage());
             return false;
         }
     }
@@ -131,8 +156,16 @@ public class JwtUtil {
      * @return 토큰 타입
      */
     public String getTokenType(String token) {
-        Claims claims = getClaimsFromToken(token);
-        return claims.get("type", String.class);
+        // 2번째 변경 - null 체크 및 예외 처리 추가
+        try {
+            Claims claims = getClaimsFromToken(token);
+            String type = claims.get("type", String.class);
+            System.out.println("Token type from claims: " + type);
+            return type;
+        } catch (Exception e) {
+            System.err.println("Failed to get token type: " + e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -141,7 +174,11 @@ public class JwtUtil {
      * @return 액세스 토큰 여부
      */
     public boolean isAccessToken(String token){
-        return "ACCESS".equals(getTokenType(token));
+// 2번째 변경 - 디버깅 로그 추가
+        String type = getTokenType(token);
+        boolean isAccess = "ACCESS".equals(type);
+        System.out.println("Is Access Token? " + isAccess + " (type: " + type + ")");
+        return isAccess;
     }
 
     //  리프레시 토큰 확인 메서드 추가
@@ -202,10 +239,31 @@ public class JwtUtil {
                     .parseClaimsJws(token)
                     .getBody();
         } catch (ExpiredJwtException e) {
-            // 만료된 토큰이어도 Claims는 반환 (만료 체크용)
+            // 만료된 토큰이어도 Claims는 반환 (로그 제거)
             return e.getClaims();
+        } catch (MalformedJwtException e) {
+            // MalformedJwtException은 그대로 던짐 (로그 제거)
+            throw e;
+        }}
+
+    // 2번째 변경 - 토큰 디버깅용 메서드 추가
+    /**
+     * 토큰 정보 출력 (디버깅용)
+     * @param token JWT 토큰
+     */
+    public void debugToken(String token) {
+        try {
+            System.out.println("=== Token Debug Info ===");
+            Claims claims = getClaimsFromToken(token);
+            System.out.println("Subject (email): " + claims.getSubject());
+            System.out.println("User ID: " + claims.get("userId"));
+            System.out.println("Type: " + claims.get("type"));
+            System.out.println("Issued At: " + claims.getIssuedAt());
+            System.out.println("Expiration: " + claims.getExpiration());
+            System.out.println("Is Expired: " + isTokenExpired(token));
+            System.out.println("========================");
+        } catch (Exception e) {
+            System.err.println("Token debug failed: " + e.getMessage());
         }
     }
-
-
-}
+    }

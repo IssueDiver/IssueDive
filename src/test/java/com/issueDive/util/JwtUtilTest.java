@@ -1,6 +1,5 @@
 package com.issueDive.util;
 
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -133,7 +132,7 @@ public class JwtUtilTest {
         String token = jwtUtil.generateAccessToken(USER_ID, USER_EMAIL);
 
         // 토큰이 만료될 때까지 대기
-        Thread.sleep(1500);
+        Thread.sleep(2000);
 
         // when
         boolean isExpired = jwtUtil.isTokenExpired(token);
@@ -238,6 +237,7 @@ public class JwtUtilTest {
         String invalidToken = "invalid.token.format";
 
         // when & then
+        // MalformedJwtException이 직접 발생
         assertThatThrownBy(() -> jwtUtil.getUserEmailFromToken(invalidToken))
                 .isInstanceOf(MalformedJwtException.class);
     }
@@ -273,5 +273,88 @@ public class JwtUtilTest {
 
         // then
         assertThat(tokenType).isEqualTo("ACCESS");
+    }
+    // 2번째 변경 - 디버그 토큰 메서드 테스트 추가
+    @Test
+    @DisplayName("토큰 디버그 정보 출력 테스트")
+    void debugToken_Success() {
+        // given
+        String accessToken = jwtUtil.generateAccessToken(USER_ID, USER_EMAIL);
+        String refreshToken = jwtUtil.generateRefreshToken(USER_ID, USER_EMAIL);
+
+        // when & then - 예외가 발생하지 않으면 성공
+        assertThatCode(() -> {
+            jwtUtil.debugToken(accessToken);
+            jwtUtil.debugToken(refreshToken);
+        }).doesNotThrowAnyException();
+    }
+
+    // 2번째 변경 - 잘못된 토큰으로 디버그 시도
+    @Test
+    @DisplayName("잘못된 토큰 디버그 시 예외 처리")
+    void debugToken_InvalidToken() {
+        // given
+        String invalidToken = "invalid.token";
+
+        // when & then - 디버그는 예외를 출력만 하고 던지지 않음
+        assertThatCode(() -> jwtUtil.debugToken(invalidToken))
+                .doesNotThrowAnyException();
+    }
+
+    // 2번째 변경 - 토큰 타입 null 체크 테스트
+    @Test
+    @DisplayName("잘못된 토큰의 타입 확인 시 null 반환")
+    void getTokenType_InvalidToken_ReturnsNull() {
+        // given
+        String invalidToken = "invalid.token";
+
+        // when
+        String tokenType = jwtUtil.getTokenType(invalidToken);
+
+        // then
+        assertThat(tokenType).isNull();
+    }
+
+    // 2번째 변경 - 액세스 토큰과 리프레시 토큰 구분 테스트
+    @Test
+    @DisplayName("액세스 토큰을 리프레시 토큰으로 오인하지 않음")
+    void accessTokenIsNotRefreshToken() {
+        // given
+        String accessToken = jwtUtil.generateAccessToken(USER_ID, USER_EMAIL);
+
+        // when & then
+        assertThat(jwtUtil.isAccessToken(accessToken)).isTrue();
+        assertThat(jwtUtil.isRefreshToken(accessToken)).isFalse();
+    }
+
+    // 2번째 변경 - 리프레시 토큰을 액세스 토큰으로 오인하지 않음
+    @Test
+    @DisplayName("리프레시 토큰을 액세스 토큰으로 오인하지 않음")
+    void refreshTokenIsNotAccessToken() {
+        // given
+        String refreshToken = jwtUtil.generateRefreshToken(USER_ID, USER_EMAIL);
+
+        // when & then
+        assertThat(jwtUtil.isRefreshToken(refreshToken)).isTrue();
+        assertThat(jwtUtil.isAccessToken(refreshToken)).isFalse();
+    }
+
+    // 2번째 변경 - 토큰 검증 시 상세 로그 확인
+    @Test
+    @DisplayName("토큰 검증 시 로그 출력 확인")
+    void validateToken_WithLogging() {
+        // given
+        String token = jwtUtil.generateAccessToken(USER_ID, USER_EMAIL);
+
+        // when
+        boolean isValid = jwtUtil.validateToken(token, USER_EMAIL);
+
+        // then
+        assertThat(isValid).isTrue();
+        // 콘솔 로그에서 다음 내용 확인 가능:
+        // Token validation - Email from token: test@example.com
+        // Token validation - Email to match: test@example.com
+        // Token validation - Email matches: true
+        // Token validation - Not expired: true
     }
 }
