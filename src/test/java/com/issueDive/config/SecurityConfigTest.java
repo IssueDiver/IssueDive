@@ -3,9 +3,13 @@ package com.issueDive.config;
 import com.issueDive.dto.CountCommentResponse;
 import com.issueDive.dto.IssueNavigationResponse;
 import com.issueDive.dto.IssueResponse;
+import com.issueDive.dto.UserResponseDTO;
 import com.issueDive.security.CustomUserDetailsService;
+import com.issueDive.security.JwtAuthenticationFilter;
 import com.issueDive.service.CommentService;
 import com.issueDive.service.IssueService;
+import com.issueDive.service.TokenBlacklistService;
+import com.issueDive.service.UserService;
 import com.issueDive.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -54,6 +59,12 @@ public class SecurityConfigTest {
     @MockitoBean
     private CommentService commentService;
 
+    @MockitoBean
+    private UserService userService;
+
+    @MockitoBean  // 이미 있을 것
+    private TokenBlacklistService tokenBlacklistService;
+
     private static final String VALID_TOKEN = "valid.jwt.token";
     private static final String USER_EMAIL = "test@example.com";
     private UserDetails userDetails;
@@ -65,6 +76,9 @@ public class SecurityConfigTest {
                 .password("password")
                 .authorities(new ArrayList<>())
                 .build();
+
+        when(tokenBlacklistService.isBlacklisted(any())).thenReturn(false);
+
     }
 
     @Test
@@ -201,6 +215,10 @@ public class SecurityConfigTest {
         given(jwtUtil.validateToken(VALID_TOKEN, USER_EMAIL)).willReturn(true);
         given(customUserDetailsService.loadUserByUsername(USER_EMAIL)).willReturn(userDetails);
 
+        // UserService mock 설정 추가 - IssueController가 내부적으로 호출함
+        UserResponseDTO mockUser = new UserResponseDTO(1L, "Test User", USER_EMAIL);
+        given(userService.findUserByEmail(USER_EMAIL)).willReturn(mockUser);
+
         IssueResponse dummyResponse = new IssueResponse(
                 1L, "Test Issue", "Test Description", "OPEN", 1L,
                 List.of(), List.of(), LocalDateTime.now(), LocalDateTime.now()
@@ -287,8 +305,7 @@ public class SecurityConfigTest {
                 .andExpect(cookie().doesNotExist("JSESSIONID"));
     }
 
-    // 555 변경: GET /issues는 인증 없이도 접근 가능하므로 테스트 수정
-    @Test
+      @Test
     @DisplayName("HTTP 메서드별 접근 제어 - GET /issues는 인증 없이 허용")
     void httpMethod_GET_AllowedWithoutAuth() throws Exception {
         mockMvc.perform(get("/issues"))
@@ -303,6 +320,10 @@ public class SecurityConfigTest {
         given(jwtUtil.getUserEmailFromToken(VALID_TOKEN)).willReturn(USER_EMAIL);
         given(jwtUtil.validateToken(VALID_TOKEN, USER_EMAIL)).willReturn(true);
         given(customUserDetailsService.loadUserByUsername(USER_EMAIL)).willReturn(userDetails);
+
+        // UserService mock 설정 추가 - IssueController가 내부적으로 호출함
+        UserResponseDTO mockUser = new UserResponseDTO(1L, "Test User", USER_EMAIL);
+        given(userService.findUserByEmail(USER_EMAIL)).willReturn(mockUser);
 
         IssueResponse dummyResponse = new IssueResponse(
                 1L, "Test Issue", "Test Description", "OPEN", 1L,
@@ -335,7 +356,7 @@ public class SecurityConfigTest {
         mockMvc.perform(delete("/issues/1")
                         .header("Authorization", "Bearer " + VALID_TOKEN))
                 .andDo(print())
-                // then: 4xx 에러가 아닌, 성공 상태 코드인 200 OK를 기대하도록 변경
+                // DELETE는 일반적으로 204 No Content를 반환
                 .andExpect(status().isOk());
     }
 
@@ -348,14 +369,13 @@ public class SecurityConfigTest {
         given(jwtUtil.getUserEmailFromToken(invalidToken))
                 .willThrow(new RuntimeException("Invalid token"));
 
-        mockMvc.perform(get("/issues")
+        mockMvc.perform(post("/issues")
                         .header("Authorization", "Bearer " + invalidToken))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("토큰 처리 중 오류가 발생했습니다.")));
     }
 
-    // 555 변경: 유효한 JWT 토큰으로 /auth/logout 접근 테스트 추가
     @Test
     @DisplayName("유효한 JWT 토큰으로 /auth/logout 접근 허용")
     void logout_WithValidToken_Allowed() throws Exception {
@@ -369,13 +389,16 @@ public class SecurityConfigTest {
                 .andExpect(status().isOk());
     }
 
-    // 555 변경: 유효한 JWT 토큰으로 /auth/users/{id} 접근 테스트 추가
     @Test
     @DisplayName("유효한 JWT 토큰으로 /auth/users/{id} 접근 허용")
     void getUser_WithValidToken_Allowed() throws Exception {
         given(jwtUtil.getUserEmailFromToken(VALID_TOKEN)).willReturn(USER_EMAIL);
         given(jwtUtil.validateToken(VALID_TOKEN, USER_EMAIL)).willReturn(true);
         given(customUserDetailsService.loadUserByUsername(USER_EMAIL)).willReturn(userDetails);
+
+        // 333변경: AuthService의 findUserById 메소드가 호출될 때 더미 응답 반환
+        UserResponseDTO dummyUser = new UserResponseDTO(1L, "Test User", USER_EMAIL);
+        given(userService.findUserById(1L)).willReturn(dummyUser);
 
         mockMvc.perform(get("/auth/users/1")
                         .header("Authorization", "Bearer " + VALID_TOKEN))
