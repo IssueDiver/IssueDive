@@ -16,7 +16,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import com.issueDive.service.RedisService;
 
 @Component
 @RequiredArgsConstructor
@@ -25,7 +24,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
-    private final RedisService redisService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -36,22 +34,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
             String jwt = getJwtFromRequest(request);
 
             if (jwt != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                // 블랙리스트 체크 추가
-                if (redisService.isBlacklisted(jwt)) {
-                    log.warn("블랙리스트에 등록된 토큰입니다.");
-                    setErrorResponse(response, "이미 로그아웃된 토큰입니다.");
-                    return;
-                }
 
                 // JWT에서 이메일 추출
                 String email = jwtUtil.getUserEmailFromToken(jwt);
 
-                // 액세스 토큰 타입 체크
-                if (!jwtUtil.isAccessToken(jwt)) {
-                    log.warn("액세스 토큰이 아닙니다.");
-                    setErrorResponse(response, "유효하지 않은 토큰 타입입니다.");
-                    return;
-                }
+                // 9월1일 변경 - AccessToken만 사용하므로 타입 체크 제거
 
                 // 토큰 유효성 검증
                 if (jwtUtil.validateToken(jwt, email)) {
@@ -92,7 +79,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
     }
 
     /**
-     * 에러 응답 설정..git a
+     * 에러 응답 설정
      */
     private void setErrorResponse(HttpServletResponse response, String message) throws IOException {
         response.setContentType("application/json;charset=UTF-8");
@@ -117,7 +104,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
         String path = request.getRequestURI();
         return path.startsWith("/auth/signup") ||
                 path.startsWith("/auth/login") ||
-                path.startsWith("/auth/refresh") ||
                 path.startsWith("/swagger-ui") ||
                 path.startsWith("/v3/api-docs");
     }
