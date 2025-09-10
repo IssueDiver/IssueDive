@@ -1,13 +1,10 @@
 package com.issueDive.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.issueDive.dto.RefreshTokenRequest;
 import com.issueDive.dto.UserResponseDTO;
 import com.issueDive.exception.AuthenticationFailedException;
 import com.issueDive.exception.UserNotFoundException;
-import com.issueDive.repository.RefreshTokenRepository;
 import com.issueDive.security.CustomUserDetailsService;
-import com.issueDive.service.TokenBlacklistService;
 import com.issueDive.service.UserService;
 import com.issueDive.util.JwtUtil;
 import org.junit.jupiter.api.DisplayName;
@@ -29,12 +26,6 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import com.issueDive.entity.RefreshToken;
-import org.springframework.test.util.ReflectionTestUtils;
-import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.Optional;
 
 import static org.mockito.MockitoAnnotations.openMocks;
 /**
@@ -67,14 +58,6 @@ public class AuthControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
-
-    @MockitoBean
-    private TokenBlacklistService tokenBlacklistService;
-
-    @MockitoBean
-    private RefreshTokenRepository refreshTokenRepository;
-
-
     @Test
     @DisplayName("[SUCCESS] POST /auth/signup - 회원가입 성공")
     void signUp_success() throws Exception {
@@ -103,7 +86,7 @@ public class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("[SUCCESS] POST /auth/login - 로그인 성공(Refresh Token 포함)")
+    @DisplayName("[SUCCESS] POST /auth/login - 로그인 성공")
     void login_success() throws Exception {
         // given: 로그인 요청 데이터 설정
         var requestBody = Map.of(
@@ -112,12 +95,10 @@ public class AuthControllerTest {
         );
         var userResponse = new UserResponseDTO(1L, "alice", "alice@test.com");
         var mockToken = "mock-access-token";
-        var mockRefreshToken = "mock-refresh-token";
 
         // 컨트롤러의 로그인 로직에 필요한 Mocking 설정
         given(userService.findUserByEmail(anyString())).willReturn(userResponse);
         given(jwtUtil.generateAccessToken(anyLong(), anyString())).willReturn(mockToken);
-        given(jwtUtil.generateRefreshToken(anyLong(), anyString())).willReturn(mockRefreshToken);
 
         // when & then
         mvc.perform(post("/auth/login")
@@ -126,11 +107,8 @@ public class AuthControllerTest {
                 .andExpect(status().isOk()) // 200 OK 상태 코드 확인
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.accessToken").value(mockToken))
-                .andExpect(jsonPath("$.data.refreshToken").value(mockRefreshToken))
                 .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.data.user.email").value("alice@test.com"));
-
-        verify(refreshTokenRepository, times(1)).save(any(RefreshToken.class));
     }
 
     @Test
@@ -243,6 +221,5 @@ public class AuthControllerTest {
                 .andExpect(jsonPath("$.data.message").value("로그아웃되었습니다. 클라이언트에서 토큰을 삭제해주세요."))
                 .andExpect(jsonPath("$.data.instruction").value("localStorage에서 accessToken을 제거하세요."));
     }
-
 
 }

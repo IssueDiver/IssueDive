@@ -25,10 +25,6 @@ public class JwtUtil {
     @Value("${jwt.expiration:14400}")
     private Long jwtExpiration;
 
-    // 9월 10일 최종 - Refresh Token 만료 시간 (7일)
-    @Value("${jwt.refresh.expiration:604800}")
-    private Long refreshTokenExpiration;
-
     /**
      * JWT 액세스 토큰 생성
      * @param userId 사용자 ID
@@ -44,20 +40,6 @@ public class JwtUtil {
         return createToken(claims, email, jwtExpiration);
     }
 
-    /**
-     * 9월 10일 최종 - Refresh Token 생성
-     * @param userId 사용자 ID
-     * @param email 사용자 이메일
-     * @return JWT Refresh Token
-     */
-    public String generateRefreshToken(Long userId, String email) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("email", email);
-        claims.put("type", "REFRESH");
-
-        return createToken(claims, email, refreshTokenExpiration);
-    }
     /**
      * 토큰에서 사용자 ID 추출
      * @param token JWT 토큰
