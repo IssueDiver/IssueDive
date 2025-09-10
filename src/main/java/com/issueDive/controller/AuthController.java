@@ -36,20 +36,43 @@ AuthController {
     private final JwtUtil jwtUtil;
     private final RedisService redisService;
 
-    /**
-     * JavaDoc 스타일 주석 추가
-     * Create: 회원가입
-     *
-     * @param request email, password
-     * @return 공통 응답 포맷 + 생성된 사용자 dto
-     */
-    @Operation(summary = "회원가입", description = "새로운 사용자를 등록합니다.")
+
+    @Operation(summary = "회원가입 및 자동 로그인", description = "새로운 사용자를 등록하고, 성공 시 즉시 로그인 처리하여 JWT를 발급합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "회원가입 및 자동 로그인 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = JwtResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 값 (유효성 검증 실패)", content = @Content),
+            @ApiResponse(responseCode = "409", description = "중복된 이메일", content = @Content)
+    })
+    @PostMapping("/signup")
+    public ResponseEntity<ApiCommonResponse<JwtResponse>> signUp(@RequestBody(description = "회원가입 정보", required = true, content = @Content(schema = @Schema(implementation = UserRequestDTO.class))) @Valid @org.springframework.web.bind.annotation.RequestBody UserRequestDTO request){
+        // 1. 사용자 생성
+        UserResponseDTO user = userService.signUp(request);
+
+        // 2. 생성된 사용자 정보로 즉시 JWT 생성
+        String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail());
+
+        // 3. 로그인 API와 동일한 JwtResponse 형식으로 응답 구성
+        JwtResponse jwtResponse = JwtResponse.of(
+                accessToken,
+                "Bearer",
+                14400L, // 4시간 (초 단위) : 설정 파일에서 관리하는 것이 더 좋지만 우선은 기존 코드에 맞게 여기서 작성함
+                user
+        );
+
+        ApiCommonResponse<JwtResponse> response = ApiCommonResponse.ok(jwtResponse);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "회원가입 (자동 로그인 없음)", description = "새로운 사용자를 등록만 합니다. (테스트용)")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "회원가입 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청 값 (중복된 이메일 등)", content = @Content)
     })
+
     @PostMapping("/signup")
     public ResponseEntity<ApiCommonResponse<UserResponseDTO>> signUp(@Valid @RequestBody UserRequestDTO request) {
+
+   
         UserResponseDTO user = userService.signUp(request);
         // return 문 간소화
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiCommonResponse.ok(user));
