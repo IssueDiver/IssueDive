@@ -32,7 +32,7 @@ import com.issueDive.security.JwtAuthenticationFilter;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-//    private final CustomUserDetailsService userDetailsService; // DB 기반 인증
+    private final CustomUserDetailsService userDetailsService; // DB 기반 인증
     private final JwtAuthenticationFilter jwtAuthenticationFilter; // JWT 필터
 
 
@@ -41,7 +41,6 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",
-            "/auth/**",
             "/actuator/**"
     };
 
@@ -53,9 +52,16 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(PUBLIC_URLS).permitAll() // 공개 URL은 모두 허용
-                        .requestMatchers("/auth/**", "/login").permitAll()                      // 1. 로그인/인증 관련 경로는 모두 허용
-                        .requestMatchers(HttpMethod.GET, "/issues", "/issues/**").permitAll()   // 2. 이슈 조회(GET)는 모두 허용
-                        .requestMatchers(HttpMethod.GET, "/labels", "/labels/**").permitAll()   // 3. 라벨 조회(GET)도 모두 허용
+                        .requestMatchers("/auth/signup", "/auth/signup-only", "/auth/login").permitAll() // 회원가입, 로그인만 공개
+                        .requestMatchers("/auth/logout").authenticated()        // 로그아웃은 인증 필요 (블랙리스트 처리)
+                        .requestMatchers("/auth/refresh").permitAll()           // 리프레시 토큰은 공개 (토큰 자체로 검증)
+                        .requestMatchers("/auth/users/**").authenticated()      // 사용자 정보 조회는 인증 필요
+                        .requestMatchers(HttpMethod.GET, "/issues", "/issues/**").permitAll()   // 이슈 조회(GET)는 모두 허용
+                        .requestMatchers(HttpMethod.GET, "/labels", "/labels/**").permitAll()   // 라벨 조회(GET)도 모두 허용
+                        // 888 변경: 추가 공개 엔드포인트들
+                        .requestMatchers(HttpMethod.GET, "/issues/*/comments").permitAll()      // 댓글 목록 조회 허용
+                        .requestMatchers(HttpMethod.GET, "/issues/*/comments/count").permitAll() // 댓글 수 조회 허용
+                        .requestMatchers(HttpMethod.GET, "/issues/*/navigation").permitAll()    // 이슈 네비게이션 조회 허용// 3. 라벨 조회(GET)도 모두 허용
                         .anyRequest().authenticated()             // 나머지는 인증 필요
                 )
                 .formLogin(formLogin -> formLogin.disable())         // 폼 로그인 비활성화 (서버 사이드 렌더링 사용X)
@@ -89,6 +95,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    /*
     @Bean
     public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
         UserDetails user = User.withUsername("test")
@@ -97,6 +104,8 @@ public class SecurityConfig {
                 .build();
         return new InMemoryUserDetailsManager(user);
     }
+
+     */
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
