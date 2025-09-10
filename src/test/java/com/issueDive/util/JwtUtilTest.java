@@ -21,6 +21,7 @@ public class JwtUtilTest {
 
     private static final String SECRET_KEY = "mySecretKeyForJwtTokenGenerationAndValidation123456789";
     private static final Long EXPIRATION = 14400L; // 4시간 (초 단위)
+    private static final Long REFRESH_EXPIRATION = 604800L; //7일 (초 단위)
     private static final Long USER_ID = 1L;
     private static final String USER_EMAIL = "test@example.com";
 
@@ -29,6 +30,7 @@ public class JwtUtilTest {
         // @Value 필드 수동 주입
         ReflectionTestUtils.setField(jwtUtil, "secretKey", SECRET_KEY);
         ReflectionTestUtils.setField(jwtUtil, "jwtExpiration", EXPIRATION);
+        ReflectionTestUtils.setField(jwtUtil, "refreshExpiration", REFRESH_EXPIRATION);
     }
 
     @Test
@@ -41,6 +43,20 @@ public class JwtUtilTest {
         assertThat(token).isNotNull();
         assertThat(token).isNotEmpty();
         assertThat(token.split("\\.")).hasSize(3); // JWT는 3개 부분으로 구성
+    }
+
+    // 리프레시 토큰 생성 테스트 추가
+    @Test
+    @DisplayName("리프레시 토큰 생성 성공")
+    void generateRefreshToken_Success() {
+        // when
+        String token = jwtUtil.generateRefreshToken(USER_ID, USER_EMAIL);
+
+        // then
+        assertThat(token).isNotNull();
+        assertThat(token).isNotEmpty();
+        assertThat(token.split("\\.")).hasSize(3);
+        assertThat(jwtUtil.isRefreshToken(token)).isTrue();
     }
 
     @Test
@@ -151,6 +167,69 @@ public class JwtUtilTest {
         // then
         assertThat(isAccessToken).isTrue();
     }
+
+    // 리프레시 토큰 타입 확인 테스트 추가
+    @Test
+    @DisplayName("리프레시 토큰 타입 확인")
+    void isRefreshToken_Success() {
+        // given
+        String token = jwtUtil.generateRefreshToken(USER_ID, USER_EMAIL);
+
+        // when
+        boolean isRefreshToken = jwtUtil.isRefreshToken(token);
+
+        // then
+        assertThat(isRefreshToken).isTrue();
+        assertThat(jwtUtil.isAccessToken(token)).isFalse();
+    }
+
+    // 남은 만료 시간 계산 테스트 추가
+    @Test
+    @DisplayName("토큰의 남은 만료 시간 계산")
+    void getRemainingExpirationTime_Success() {
+        // given
+        String token = jwtUtil.generateAccessToken(USER_ID, USER_EMAIL);
+
+        // when
+        Long remainingTime = jwtUtil.getRemainingExpirationTime(token);
+
+        // then
+        assertThat(remainingTime).isGreaterThan(0);
+        assertThat(remainingTime).isLessThanOrEqualTo(EXPIRATION);
+    }
+
+    // 만료된 토큰의 남은 시간 테스트 추가
+    @Test
+    @DisplayName("만료된 토큰의 남은 시간은 0")
+    void getRemainingExpirationTime_ExpiredToken() throws InterruptedException {
+        // given
+        ReflectionTestUtils.setField(jwtUtil, "jwtExpiration", 1L);
+        String token = jwtUtil.generateAccessToken(USER_ID, USER_EMAIL);
+        Thread.sleep(1500);
+
+        // when
+        Long remainingTime = jwtUtil.getRemainingExpirationTime(token);
+
+        // then
+        assertThat(remainingTime).isEqualTo(0);
+    }
+
+    // 리프레시 토큰 만료 시간 확인 테스트 추가
+    @Test
+    @DisplayName("리프레시 토큰이 액세스 토큰보다 긴 만료 시간을 가짐")
+    void refreshTokenHasLongerExpiration() {
+        // given
+        String accessToken = jwtUtil.generateAccessToken(USER_ID, USER_EMAIL);
+        String refreshToken = jwtUtil.generateRefreshToken(USER_ID, USER_EMAIL);
+
+        // when
+        Date accessExpiration = jwtUtil.getExpirationDateFromToken(accessToken);
+        Date refreshExpiration = jwtUtil.getExpirationDateFromToken(refreshToken);
+
+        // then
+        assertThat(refreshExpiration).isAfter(accessExpiration);
+    }
+
 
     @Test
     @DisplayName("잘못된 형식의 토큰 파싱 실패")

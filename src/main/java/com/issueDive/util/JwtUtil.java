@@ -25,6 +25,10 @@ public class JwtUtil {
     @Value("${jwt.expiration:14400}")
     private Long jwtExpiration;
 
+    // 리프레시 토큰 만료 시간 추가 (7일)
+    @Value("${jwt.refresh.expiration:604800}")
+    private Long refreshExpiration;
+
     /**
      * JWT 액세스 토큰 생성
      * @param userId 사용자 ID
@@ -39,6 +43,23 @@ public class JwtUtil {
 
         return createToken(claims, email, jwtExpiration);
     }
+
+    // 리프레시 토큰 생성 메서드 추가
+    /**
+     * JWT 리프레시 토큰 생성
+     * @param userId 사용자 ID
+     * @param email 사용자 이메일
+     * @return JWT 리프레시 토큰
+     */
+    public String generateRefreshToken(Long userId, String email){
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userId);
+        claims.put("email", email);
+        claims.put("type", "REFRESH");
+
+        return createToken(claims, email, refreshExpiration);
+    }
+
 
     /**
      * 토큰에서 사용자 ID 추출
@@ -121,6 +142,38 @@ public class JwtUtil {
      */
     public boolean isAccessToken(String token){
         return "ACCESS".equals(getTokenType(token));
+    }
+
+    //  리프레시 토큰 확인 메서드 추가
+    /**
+     * 리프레시 토큰인지 확인
+     * @param token JWT 토큰
+     * @return 리프레시 토큰 여부
+     */
+    public boolean isRefreshToken(String token){
+        return "REFRESH".equals(getTokenType(token));
+    }
+
+    // 9월10일 수정 - 남은 만료 시간 계산 메서드 추가
+    /**
+     * 토큰의 남은 만료 시간 계산 (초 단위)
+     * @param token JWT 토큰
+     * @return 남은 만료 시간 (초)
+     */
+    public Long getRemainingExpirationTime(String token) {
+        try {
+            Date expiration = getExpirationDateFromToken(token);
+            Date now = new Date();
+            long diff = expiration.getTime() - now.getTime();
+            return diff > 0 ? diff / 1000 : 0;
+        } catch (Exception e) {
+            return 0L;
+        }
+    }
+
+    //리프레시 토큰 만료 시간 getter 추가
+    public Long getRefreshExpiration() {
+        return refreshExpiration;
     }
 
     private String createToken(Map<String, Object>claims, String subject, Long expiration){

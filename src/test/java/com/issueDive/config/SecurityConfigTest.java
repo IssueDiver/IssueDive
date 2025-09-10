@@ -210,6 +210,7 @@ public class SecurityConfigTest {
     void httpMethod_GET_Allowed() throws Exception {
         given(jwtUtil.getUserEmailFromToken(VALID_TOKEN)).willReturn(USER_EMAIL);
         given(jwtUtil.validateToken(VALID_TOKEN, USER_EMAIL)).willReturn(true);
+        given(jwtUtil.isAccessToken(VALID_TOKEN)).willReturn(true);
         given(customUserDetailsService.loadUserByUsername(USER_EMAIL)).willReturn(userDetails);
 
         mockMvc.perform(get("/issues")
@@ -248,6 +249,7 @@ public class SecurityConfigTest {
         // given: 인증 관련 설정 (기존과 동일)
         given(jwtUtil.getUserEmailFromToken(VALID_TOKEN)).willReturn(USER_EMAIL);
         given(jwtUtil.validateToken(VALID_TOKEN, USER_EMAIL)).willReturn(true);
+        given(jwtUtil.isAccessToken(VALID_TOKEN)).willReturn(true);
         given(customUserDetailsService.loadUserByUsername(USER_EMAIL)).willReturn(userDetails);
 
         // given: IssueService의 deleteIssue 메소드가 호출될 때 아무것도 하지 않도록 설정 (성공 시나리오)

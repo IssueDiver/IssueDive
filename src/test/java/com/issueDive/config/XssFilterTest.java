@@ -32,6 +32,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.issueDive.service.RedisService;
+
 @WebMvcTest(controllers = IssueController.class) // 테스트 대상 컨트롤러 지정
 @Import(XssSanitizerConfig.class) // 테스트 환경에 XSS 설정 파일을 명시적으로 포함
 @WithMockUser // Spring Security 인증을 통과했다고 가정
@@ -53,6 +55,9 @@ class XssFilterTest {
     private JwtUtil jwtUtil;
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    private RedisService redisService;
 
     @BeforeEach
     void setUp() {
