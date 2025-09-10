@@ -12,7 +12,7 @@ public record IssueFilterRequest(
         List<Long> labelIds,
         @Min(0) Integer page,
         @Min(1) Integer size,
-        @Pattern(regexp = "createdAt|updatedAt") String sort,
+        @Pattern(regexp = "createdAt|updatedAt|commentCount") String sort,
         @Pattern(regexp = "asc|desc|ASC|DESC") String order,
         String query
 ) {}
