@@ -27,6 +27,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.issueDive.dto.RefreshTokenRequest;
+import com.issueDive.service.RedisService;
+import org.springframework.security.test.context.support.WithMockUser;
+
 import static org.mockito.MockitoAnnotations.openMocks;
 /**
  * @WebMvcTest: 웹 계층(컨트롤러)에 대한 슬라이스 테스트를 진행합니다.
@@ -57,6 +61,10 @@ public class AuthControllerTest {
     // Security Filter Chain이 로드될 때를 대비하여 의존성 Mock Bean 추가
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    // Redis 서비스 Mock 추가
+    @MockitoBean
+    private RedisService redisService;
 
     @Test
     @DisplayName("[SUCCESS] POST /auth/signup - 회원가입 성공")
@@ -95,10 +103,15 @@ public class AuthControllerTest {
         );
         var userResponse = new UserResponseDTO(1L, "alice", "alice@test.com");
         var mockToken = "mock-access-token";
+        var mockRefreshToken = "mock-refresh-token";
 
         // 컨트롤러의 로그인 로직에 필요한 Mocking 설정
         given(userService.findUserByEmail(anyString())).willReturn(userResponse);
         given(jwtUtil.generateAccessToken(anyLong(), anyString())).willReturn(mockToken);
+        given(jwtUtil.generateRefreshToken(anyLong(), anyString())).willReturn(mockRefreshToken); // 9월10일 수정
+        given(jwtUtil.getRefreshExpiration()).willReturn(604800L); // 9월10일 수정
+        doNothing().when(redisService).saveRefreshToken(anyString(), anyString(), anyLong()); // 9월10일 수정
+
 
         // when & then
         mvc.perform(post("/auth/login")
@@ -107,8 +120,11 @@ public class AuthControllerTest {
                 .andExpect(status().isOk()) // 200 OK 상태 코드 확인
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.accessToken").value(mockToken))
+                .andExpect(jsonPath("$.data.refreshToken").value(mockRefreshToken))
                 .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.data.user.email").value("alice@test.com"));
+
+        verify(redisService, times(1)).saveRefreshToken(eq("alice@test.com"), eq(mockRefreshToken), anyLong());
     }
 
     @Test
@@ -127,6 +143,29 @@ public class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsString(requestBody)))
                 .andExpect(status().isUnauthorized()); // 401 Unauthorized 상태 코드 확인
+    }
+
+    // 로그아웃 테스트 추가
+    @Test
+    @DisplayName("[SUCCESS] POST /auth/logout - 로그아웃 성공 (토큰 블랙리스트 추가)")
+    @WithMockUser(username = "alice@test.com")
+    void logout_success() throws Exception {
+        String accessToken = "valid-access-token";
+        String bearerToken = "Bearer " + accessToken;
+
+        given(jwtUtil.getRemainingExpirationTime(accessToken)).willReturn(3600L); // 1시간 남음
+        doNothing().when(redisService).addToBlacklist(anyString(), anyLong());
+        doNothing().when(redisService).deleteRefreshToken(anyString());
+
+        mvc.perform(post("/auth/logout")
+                        .header("Authorization", bearerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.message").value("로그아웃되었습니다."))
+                .andExpect(jsonPath("$.data.instruction").value("클라이언트에서 토큰을 삭제해주세요."));
+
+        // 9월10일 수정 - 블랙리스트와 리프레시 토큰 삭제 검증
+        verify(redisService, times(1)).addToBlacklist(eq(accessToken), eq(3600L));
+        verify(redisService, times(1)).deleteRefreshToken("alice@test.com");
     }
 
     @Test
@@ -186,40 +225,79 @@ public class AuthControllerTest {
 
     // ==============JWT 관련 테스트 ==============
 
+    // 9월10일 수정 - JWT 토큰 생성 테스트 수정 (리프레시 토큰 포함)
     @Test
-    @DisplayName("POST /auth/login - JWT 토큰 생성 확인")
+    @DisplayName("POST /auth/login - JWT 토큰 생성 확인 (리프레시 토큰 포함)")
     void login_withJWT_tokenGeneration() throws Exception {
         var req = Map.of(
                 "email", "alice@test.com",
                 "password", "password123"
         );
 
-        String mockToken = "mock.jwt.token";
+        String mockAccessToken = "mock.jwt.access.token";
+        String mockRefreshToken = "mock.jwt.refresh.token"; // 9월10일 수정
         var userResponse = new UserResponseDTO(1L, "alice", "alice@test.com");
 
         given(userService.findUserByEmail("alice@test.com")).willReturn(userResponse);
-        given(jwtUtil.generateAccessToken(1L, "alice@test.com")).willReturn(mockToken);
+        given(jwtUtil.generateAccessToken(1L, "alice@test.com")).willReturn(mockAccessToken);
+        given(jwtUtil.generateRefreshToken(1L, "alice@test.com")).willReturn(mockRefreshToken); // 9월10일 수정
+        given(jwtUtil.getRefreshExpiration()).willReturn(604800L); // 9월10일 수정
 
         mvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsString(req)))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.accessToken").value(mockToken))
+                .andExpect(jsonPath("$.data.accessToken").value(mockAccessToken))
+                .andExpect(jsonPath("$.data.refreshToken").value(mockRefreshToken)) // 9월10일 수정
                 .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.data.expiresIn").value(14400));
 
-        // JWT 토큰 생성 메서드가 호출되었는지 검증
+        // 토큰 생성 메서드 호출 검증
         verify(jwtUtil, times(1)).generateAccessToken(1L, "alice@test.com");
+        verify(jwtUtil, times(1)).generateRefreshToken(1L, "alice@test.com");
     }
 
+    // 9월10일 수정 - 토큰 갱신 테스트 추가
     @Test
-    @DisplayName("POST /auth/logout - 로그아웃 응답 확인")
-    void logout_success() throws Exception {
-        mvc.perform(post("/auth/logout"))
+    @DisplayName("[SUCCESS] POST /auth/refresh - 토큰 갱신 성공")
+    void refreshToken_success() throws Exception {
+        String refreshToken = "valid-refresh-token";
+        String newAccessToken = "new-access-token";
+        String userEmail = "alice@test.com";
+        var userResponse = new UserResponseDTO(1L, "alice", userEmail);
+
+        var requestBody = Map.of("refreshToken", refreshToken);
+
+        given(jwtUtil.getUserEmailFromToken(refreshToken)).willReturn(userEmail);
+        given(jwtUtil.isRefreshToken(refreshToken)).willReturn(true);
+        given(jwtUtil.validateToken(refreshToken, userEmail)).willReturn(true);
+        given(redisService.validateRefreshToken(userEmail, refreshToken)).willReturn(true);
+        given(userService.findUserByEmail(userEmail)).willReturn(userResponse);
+        given(jwtUtil.generateAccessToken(1L, userEmail)).willReturn(newAccessToken);
+
+        mvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(om.writeValueAsString(requestBody)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.message").value("로그아웃되었습니다. 클라이언트에서 토큰을 삭제해주세요."))
-                .andExpect(jsonPath("$.data.instruction").value("localStorage에서 accessToken을 제거하세요."));
+                .andExpect(jsonPath("$.data.accessToken").value(newAccessToken))
+                .andExpect(jsonPath("$.data.refreshToken").value(refreshToken))
+                .andExpect(jsonPath("$.data.user.email").value(userEmail));
     }
 
+    // 9월10일 수정 - 유효하지 않은 리프레시 토큰 테스트 추가
+    @Test
+    @DisplayName("[FAIL] POST /auth/refresh - 유효하지 않은 리프레시 토큰")
+    void refreshToken_invalidToken() throws Exception {
+        String invalidToken = "invalid-refresh-token";
+        var requestBody = Map.of("refreshToken", invalidToken);
+
+        given(jwtUtil.getUserEmailFromToken(invalidToken)).willReturn("test@example.com");
+        given(jwtUtil.isRefreshToken(invalidToken)).willReturn(false);
+
+        mvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(om.writeValueAsString(requestBody)))
+                .andExpect(status().isUnauthorized());
+    }
 }

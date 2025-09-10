@@ -84,6 +84,10 @@ dependencies {
 
     // XSS 방어를 위한 HTML Sanitizer 라이브러리
     implementation 'com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20220608.1'
+
+    // Redis 의존성 추가
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'io.lettuce:lettuce-core'
 }
 
 // Query DSL 설정

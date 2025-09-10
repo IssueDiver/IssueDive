@@ -26,6 +26,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
+import com.issueDive.service.RedisService;
+
 @ExtendWith(MockitoExtension.class)
 public class JwtAuthenticationFilterTest {
     @InjectMocks
@@ -33,6 +35,9 @@ public class JwtAuthenticationFilterTest {
 
     @Mock
     private JwtUtil jwtUtil;
+
+    @Mock
+    private RedisService redisService;
 
     @Mock
     private CustomUserDetailsService customUserDetailsService;
@@ -65,7 +70,9 @@ public class JwtAuthenticationFilterTest {
     void doFilterInternal_ValidToken_Success() throws ServletException, IOException {
         // given
         given(request.getHeader("Authorization")).willReturn("Bearer " + VALID_TOKEN);
+        given(redisService.isBlacklisted(VALID_TOKEN)).willReturn(false);
         given(jwtUtil.getUserEmailFromToken(VALID_TOKEN)).willReturn(USER_EMAIL);
+        given(jwtUtil.isAccessToken(VALID_TOKEN)).willReturn(true);
         given(jwtUtil.validateToken(VALID_TOKEN, USER_EMAIL)).willReturn(true);
         given(customUserDetailsService.loadUserByUsername(USER_EMAIL)).willReturn(userDetails);
 
@@ -76,6 +83,52 @@ public class JwtAuthenticationFilterTest {
         verify(filterChain, times(1)).doFilter(request, response);
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
         assertThat(SecurityContextHolder.getContext().getAuthentication().getName()).isEqualTo(USER_EMAIL);
+    }
+
+    // 블랙리스트에 있는 토큰 테스트 추가
+    @Test
+    @DisplayName("블랙리스트에 등록된 토큰으로 인증 실패")
+    void doFilterInternal_BlacklistedToken_Failure() throws ServletException, IOException {
+        // given
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter writer = new PrintWriter(stringWriter);
+
+        given(request.getHeader("Authorization")).willReturn("Bearer " + VALID_TOKEN);
+        given(redisService.isBlacklisted(VALID_TOKEN)).willReturn(true); // 블랙리스트에 존재
+        given(response.getWriter()).willReturn(writer);
+
+        // when
+        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+
+        // then
+        verify(response).setContentType("application/json;charset=UTF-8");
+        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(filterChain, never()).doFilter(request, response);
+        assertThat(stringWriter.toString()).contains("이미 로그아웃된 토큰입니다.");
+    }
+
+    // 리프레시 토큰으로 인증 시도 실패 테스트 추가
+    @Test
+    @DisplayName("리프레시 토큰으로 인증 시도 시 실패")
+    void doFilterInternal_RefreshToken_Failure() throws ServletException, IOException {
+        // given
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter writer = new PrintWriter(stringWriter);
+
+        given(request.getHeader("Authorization")).willReturn("Bearer " + VALID_TOKEN);
+        given(redisService.isBlacklisted(VALID_TOKEN)).willReturn(false);
+        given(jwtUtil.getUserEmailFromToken(VALID_TOKEN)).willReturn(USER_EMAIL);
+        given(jwtUtil.isAccessToken(VALID_TOKEN)).willReturn(false); // 액세스 토큰이 아님
+        given(response.getWriter()).willReturn(writer);
+
+        // when
+        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+
+        // then
+        verify(response).setContentType("application/json;charset=UTF-8");
+        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(filterChain, never()).doFilter(request, response);
+        assertThat(stringWriter.toString()).contains("유효하지 않은 토큰 타입입니다.");
     }
 
     @Test
@@ -115,7 +168,9 @@ public class JwtAuthenticationFilterTest {
         PrintWriter writer = new PrintWriter(stringWriter);
 
         given(request.getHeader("Authorization")).willReturn("Bearer " + VALID_TOKEN);
+        given(redisService.isBlacklisted(VALID_TOKEN)).willReturn(false);
         given(jwtUtil.getUserEmailFromToken(VALID_TOKEN)).willReturn(USER_EMAIL);
+        given(jwtUtil.isAccessToken(VALID_TOKEN)).willReturn(true);
         given(jwtUtil.validateToken(VALID_TOKEN, USER_EMAIL)).willReturn(false);
         given(response.getWriter()).willReturn(writer);
 
@@ -137,6 +192,7 @@ public class JwtAuthenticationFilterTest {
         PrintWriter writer = new PrintWriter(stringWriter);
 
         given(request.getHeader("Authorization")).willReturn("Bearer " + VALID_TOKEN);
+        given(redisService.isBlacklisted(VALID_TOKEN)).willReturn(false);
         given(jwtUtil.getUserEmailFromToken(VALID_TOKEN))
                 .willThrow(new RuntimeException("JWT 파싱 오류"));
         given(response.getWriter()).willReturn(writer);
@@ -176,6 +232,21 @@ public class JwtAuthenticationFilterTest {
         // then
         assertThat(shouldNotFilter).isTrue();
     }
+
+    // /auth/refresh 경로 테스트 추가
+    @Test
+    @DisplayName("공개 URL은 필터를 적용하지 않음 - /auth/refresh")
+    void shouldNotFilter_PublicUrl_Refresh() {
+        // given
+        given(request.getRequestURI()).willReturn("/auth/refresh");
+
+        // when
+        boolean shouldNotFilter = jwtAuthenticationFilter.shouldNotFilter(request);
+
+        // then
+        assertThat(shouldNotFilter).isTrue();
+    }
+
 
     @Test
     @DisplayName("공개 URL은 필터를 적용하지 않음 - /swagger-ui")
@@ -261,7 +332,6 @@ public class JwtAuthenticationFilterTest {
         verify(response).setContentType("application/json;charset=UTF-8");
         verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         verify(filterChain, never()).doFilter(request, response);
-        // 9월 2일 변경: 실제 응답 메시지에 맞게 수정
-        assertThat(stringWriter.toString()).contains("유효하지 않은 토큰입니다.");
+        assertThat(stringWriter.toString()).contains("유효하지 않은 토큰 타입입니다.");
     }
 }
