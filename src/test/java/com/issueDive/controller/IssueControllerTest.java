@@ -1,7 +1,6 @@
 package com.issueDive.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.issueDive.config.TestWebMvcConfig;
 import com.issueDive.dto.CreateIssueRequest;
 import com.issueDive.dto.IssueFilterRequest;
 import com.issueDive.dto.IssueResponse;
@@ -22,7 +21,6 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -49,7 +47,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WithMockUser(username = "test@example.com", roles = "USER")
 @AutoConfigureMockMvc
 @WebMvcTest(IssueController.class)
-@Import(TestWebMvcConfig.class)
 public class IssueControllerTest {
 
     @Autowired

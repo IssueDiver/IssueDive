@@ -25,10 +25,6 @@ public class JwtUtil {
     @Value("${jwt.expiration:14400}")
     private Long jwtExpiration;
 
-    // 리프레시 토큰 만료 시간 추가 (7일)
-    @Value("${jwt.refresh.expiration:604800}")
-    private Long refreshExpiration;
-
     /**
      * JWT 액세스 토큰 생성
      * @param userId 사용자 ID
@@ -43,23 +39,6 @@ public class JwtUtil {
 
         return createToken(claims, email, jwtExpiration);
     }
-
-    // 리프레시 토큰 생성 메서드 추가
-    /**
-     * JWT 리프레시 토큰 생성
-     * @param userId 사용자 ID
-     * @param email 사용자 이메일
-     * @return JWT 리프레시 토큰
-     */
-    public String generateRefreshToken(Long userId, String email){
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("email", email);
-        claims.put("type", "REFRESH");
-
-        return createToken(claims, email, refreshExpiration);
-    }
-
 
     /**
      * 토큰에서 사용자 ID 추출
@@ -93,13 +72,7 @@ public class JwtUtil {
      * @return 만료 시간
      */
     public Date getExpirationDateFromToken(String token){
-        // ExpiredJwtException 처리 추가
-        try {
-            return getClaimsFromToken(token).getExpiration();
-        } catch (ExpiredJwtException e) {
-            // 4번 변경 - 만료된 토큰에서도 만료 시간 추출
-            return e.getClaims().getExpiration();
-        }
+        return getClaimsFromToken(token).getExpiration();
     }
 
     /**
@@ -108,20 +81,11 @@ public class JwtUtil {
      * @return 만료 여부
      */
     public boolean isTokenExpired(String token){
-        // 완전히 새로운 방식으로 만료 확인
         try {
-            // 파싱 시도만으로 만료 확인
-            Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
-                    .build()
-                    .parseClaimsJws(token);
-            return false; //  파싱 성공 = 만료되지 않음
+            final Date expiration = getExpirationDateFromToken(token);
+            return expiration.before(new Date());
         } catch (ExpiredJwtException e) {
-            return true;  // ExpiredJwtException = 만료됨
-        } catch (Exception e) {
-            // 다른 예외는 만료와 무관하므로 false 반환
-            System.err.println("Error checking token expiration: " + e.getMessage());
-            return false;
+            return true;  // 이미 만료된 토큰
         }
     }
 
@@ -134,18 +98,8 @@ public class JwtUtil {
     public boolean validateToken(String token, String email){
         try{
             final String tokenEmail = getUserEmailFromToken(token);
-            // 2번째 변경 - 디버깅 로그 추가
-            boolean emailMatches = tokenEmail.equals(email);
-            boolean notExpired = !isTokenExpired(token);
-
-            System.out.println("Token validation - Email from token: " + tokenEmail);
-            System.out.println("Token validation - Email to match: " + email);
-            System.out.println("Token validation - Email matches: " + emailMatches);
-            System.out.println("Token validation - Not expired: " + notExpired);
-
-            return emailMatches && notExpired;
+            return (tokenEmail.equals(email) && !isTokenExpired(token));
         }catch (Exception e){
-            System.err.println("Token validation error: " + e.getMessage());
             return false;
         }
     }
@@ -156,16 +110,8 @@ public class JwtUtil {
      * @return 토큰 타입
      */
     public String getTokenType(String token) {
-        // 2번째 변경 - null 체크 및 예외 처리 추가
-        try {
-            Claims claims = getClaimsFromToken(token);
-            String type = claims.get("type", String.class);
-            System.out.println("Token type from claims: " + type);
-            return type;
-        } catch (Exception e) {
-            System.err.println("Failed to get token type: " + e.getMessage());
-            return null;
-        }
+        Claims claims = getClaimsFromToken(token);
+        return claims.get("type", String.class);
     }
 
     /**
@@ -174,43 +120,7 @@ public class JwtUtil {
      * @return 액세스 토큰 여부
      */
     public boolean isAccessToken(String token){
-// 2번째 변경 - 디버깅 로그 추가
-        String type = getTokenType(token);
-        boolean isAccess = "ACCESS".equals(type);
-        System.out.println("Is Access Token? " + isAccess + " (type: " + type + ")");
-        return isAccess;
-    }
-
-    //  리프레시 토큰 확인 메서드 추가
-    /**
-     * 리프레시 토큰인지 확인
-     * @param token JWT 토큰
-     * @return 리프레시 토큰 여부
-     */
-    public boolean isRefreshToken(String token){
-        return "REFRESH".equals(getTokenType(token));
-    }
-
-    // 9월10일 수정 - 남은 만료 시간 계산 메서드 추가
-    /**
-     * 토큰의 남은 만료 시간 계산 (초 단위)
-     * @param token JWT 토큰
-     * @return 남은 만료 시간 (초)
-     */
-    public Long getRemainingExpirationTime(String token) {
-        try {
-            Date expiration = getExpirationDateFromToken(token);
-            Date now = new Date();
-            long diff = expiration.getTime() - now.getTime();
-            return diff > 0 ? diff / 1000 : 0;
-        } catch (Exception e) {
-            return 0L;
-        }
-    }
-
-    //리프레시 토큰 만료 시간 getter 추가
-    public Long getRefreshExpiration() {
-        return refreshExpiration;
+        return "ACCESS".equals(getTokenType(token));
     }
 
     private String createToken(Map<String, Object>claims, String subject, Long expiration){
@@ -239,31 +149,10 @@ public class JwtUtil {
                     .parseClaimsJws(token)
                     .getBody();
         } catch (ExpiredJwtException e) {
-            // 만료된 토큰이어도 Claims는 반환 (로그 제거)
+            // 만료된 토큰이어도 Claims는 반환 (만료 체크용)
             return e.getClaims();
-        } catch (MalformedJwtException e) {
-            // MalformedJwtException은 그대로 던짐 (로그 제거)
-            throw e;
-        }}
-
-    // 2번째 변경 - 토큰 디버깅용 메서드 추가
-    /**
-     * 토큰 정보 출력 (디버깅용)
-     * @param token JWT 토큰
-     */
-    public void debugToken(String token) {
-        try {
-            System.out.println("=== Token Debug Info ===");
-            Claims claims = getClaimsFromToken(token);
-            System.out.println("Subject (email): " + claims.getSubject());
-            System.out.println("User ID: " + claims.get("userId"));
-            System.out.println("Type: " + claims.get("type"));
-            System.out.println("Issued At: " + claims.getIssuedAt());
-            System.out.println("Expiration: " + claims.getExpiration());
-            System.out.println("Is Expired: " + isTokenExpired(token));
-            System.out.println("========================");
-        } catch (Exception e) {
-            System.err.println("Token debug failed: " + e.getMessage());
         }
     }
-    }
+
+
+}

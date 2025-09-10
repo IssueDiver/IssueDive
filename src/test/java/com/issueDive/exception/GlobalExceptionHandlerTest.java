@@ -17,8 +17,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import org.springframework.http.MediaType;
 
-import com.issueDive.service.RedisService;
-
 /**
  * Controller에서 특정 예외가 발생했을 때, GlobalExceptionHandler가 그것을 잘 가로채서 우리가 원하는 JSON 에러 응답(예: 409 Conflict)을 만들어주는가?"를 검증하는 것이 목표이므로 @WebMvcTest 어노테이션을 사용하여 웹 계층만 로드함.
  * 다른 @Configuration의 영향을 받지 않고 순수하게 예외 처리 로직만 테스트하도록 함.
@@ -39,9 +37,6 @@ public class GlobalExceptionHandlerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
-
-    @MockitoBean
-    private RedisService redisService;
 
     // DuplicateEmail -> 409
     @Test
