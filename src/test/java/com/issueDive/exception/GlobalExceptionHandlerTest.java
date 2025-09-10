@@ -2,6 +2,7 @@ package com.issueDive.exception;
 
 import com.issueDive.controller.AuthController;
 import com.issueDive.security.CustomUserDetailsService;
+import com.issueDive.service.TokenBlacklistService;
 import com.issueDive.util.JwtUtil;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -37,6 +38,9 @@ public class GlobalExceptionHandlerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    private TokenBlacklistService tokenBlacklistService;
 
     // DuplicateEmail -> 409
     @Test
