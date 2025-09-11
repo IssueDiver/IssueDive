@@ -17,7 +17,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 @Component
 @RequiredArgsConstructor
@@ -95,7 +94,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
                 },
                 "timestamp": "%s"
             }
-            """, message, java.time.LocalDateTime.now().toString()));
+            """, message, java.time.LocalDateTime.now()));
     }
 
     /**
@@ -104,9 +103,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/auth/signup") ||
-                path.startsWith("/auth/login") ||
-                path.startsWith("/auth/refresh") ||
+        return path.startsWith("/api/auth/signup") ||
+                path.startsWith("/api/auth/login") ||
+                path.startsWith("/api/auth/refresh") ||
                 path.startsWith("/swagger-ui") ||
                 path.startsWith("/v3/api-docs")||
                 path.startsWith("/actuator");

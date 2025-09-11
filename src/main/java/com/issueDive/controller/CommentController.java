@@ -1,9 +1,6 @@
 package com.issueDive.controller;
 
 import com.issueDive.dto.*;
-import com.issueDive.entity.User;
-import com.issueDive.exception.UserNotFoundException;
-import com.issueDive.repository.UserRepository;
 import com.issueDive.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -25,7 +22,7 @@ import java.util.List;
 @Tag(name = "Comment", description = "댓글 관리 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/issues/{issueId}/comments")
+@RequestMapping("/api/issues/{issueId}/comments")
 public class CommentController {
     private final CommentService commentService;
     private final UserService userService;

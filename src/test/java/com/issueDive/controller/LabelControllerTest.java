@@ -41,9 +41,6 @@ class LabelControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper; // ObjectMapper 주입
-
     // --- MockitoBean: 테스트 대상 컨트롤러의 의존성을 가짜(Mock) 객체로 주입 ---
     @MockitoBean
     private LabelService labelService;
@@ -57,6 +54,8 @@ class LabelControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    private static final String API_PREFIX = "/api";
 
     @Test
     @DisplayName("[SUCCESS] POST /labels - 라벨 생성 성공")
@@ -76,7 +75,7 @@ class LabelControllerTest {
         """;
 
         // when & then: API 호출 및 응답 검증
-        mockMvc.perform(post("/labels")
+        mockMvc.perform(post(API_PREFIX + "/labels")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
@@ -99,7 +98,7 @@ class LabelControllerTest {
                 .thenThrow(new ValidationException(ErrorCode.DuplicateLabel, "이미 존재하는 라벨 이름입니다."));
 
         // when & then
-        mockMvc.perform(post("/labels")
+        mockMvc.perform(post(API_PREFIX + "/labels")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
@@ -118,7 +117,7 @@ class LabelControllerTest {
         Mockito.when(labelService.getLabels()).thenReturn(mockList);
 
         // when & then
-        mockMvc.perform(get("/labels"))
+        mockMvc.perform(get(API_PREFIX + "/labels"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray())
@@ -138,7 +137,7 @@ class LabelControllerTest {
         Mockito.when(labelService.getLabel(10L)).thenReturn(mockResponse);
 
         // when & then
-        mockMvc.perform(get("/labels/10"))
+        mockMvc.perform(get(API_PREFIX + "/labels/10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(10))
                 .andExpect(jsonPath("$.data.name").value("bug"))
@@ -152,7 +151,7 @@ class LabelControllerTest {
         Mockito.when(labelService.getLabel(99L)).thenThrow(new LabelNotFoundException("라벨을 찾을 수 없습니다."));
 
         // when & then
-        mockMvc.perform(get("/labels/99"))
+        mockMvc.perform(get(API_PREFIX + "/labels/99"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("LabelNotFound"));
     }
@@ -169,7 +168,7 @@ class LabelControllerTest {
         Mockito.when(labelService.updateLabel(eq(labelId), any())).thenReturn(mockResponse);
 
         // when & then
-        mockMvc.perform(patch("/labels/{labelId}", labelId)
+        mockMvc.perform(patch(API_PREFIX + "/labels/{labelId}", labelId)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
@@ -186,7 +185,7 @@ class LabelControllerTest {
         Mockito.doNothing().when(labelService).deleteLabel(labelId);
 
         // when & then
-        mockMvc.perform(delete("/labels/{id}", labelId)
+        mockMvc.perform(delete(API_PREFIX + "/labels/{id}", labelId)
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.message").value("Label 10 deleted successfully"));
@@ -198,7 +197,7 @@ class LabelControllerTest {
         Long labelId = 20L;
         Mockito.doNothing().when(labelService).deleteLabel(labelId);
 
-        mockMvc.perform(delete("/labels/{id}", labelId)
+        mockMvc.perform(delete(API_PREFIX + "/labels/{id}", labelId)
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.message").value("Label 20 deleted successfully"));
@@ -220,7 +219,7 @@ class LabelControllerTest {
         String requestBody = "[10, 20]";
 
         // when & then
-        mockMvc.perform(post("/issues/{issueId}/labels", issueId)
+        mockMvc.perform(post(API_PREFIX + "/issues/{issueId}/labels", issueId)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
@@ -245,7 +244,7 @@ class LabelControllerTest {
         Mockito.when(issueLabelService.deleteLabelFromIssue(issueId, labelId)).thenReturn(mockResponse);
 
         // when & then
-        mockMvc.perform(delete("/issues/{issueId}/labels/{labelId}", issueId, labelId)
+        mockMvc.perform(delete(API_PREFIX + "/issues/{issueId}/labels/{labelId}", issueId, labelId)
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(issueId))

@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.issueDive.dto.*;
-import com.issueDive.service.UserService;
 import jakarta.validation.Valid;
 import lombok.*;
 import org.springframework.http.HttpStatus;
@@ -24,7 +23,7 @@ import com.issueDive.util.JwtUtil;
 
 @Tag(name = "Auth & User", description = "인증 및 사용자 관리 API")
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class
 AuthController {
