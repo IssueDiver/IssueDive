@@ -32,6 +32,7 @@ import static org.mockito.MockitoAnnotations.openMocks;
  * @WebMvcTest: 웹 계층(컨트롤러)에 대한 슬라이스 테스트를 진행합니다.
  * @AutoConfigureMockMvc: MockMvc를 자동으로 설정하며, addFilters = false를 통해
  * AuthController의 공개 API 테스트 시 Spring Security 필터를 적용하지 않습니다.
+ *
  */
 @WebMvcTest(controllers = AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)

@@ -37,11 +37,11 @@ public class SecurityConfig {
 
 
     // 공개적으로 접근 가능한 URL 목록
+    //
     private static final String[] PUBLIC_URLS = {
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",
-            "/auth/**",
             "/actuator/**"
     };
 
@@ -53,7 +53,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(PUBLIC_URLS).permitAll() // 공개 URL은 모두 허용
-                        .requestMatchers("/auth/**", "/login").permitAll()                      // 1. 로그인/인증 관련 경로는 모두 허용
+                        .requestMatchers("/auth/signup", "/auth/login").permitAll()                      // 1. 로그인/인증 관련 경로는 모두 허용
                         .requestMatchers(HttpMethod.GET, "/issues", "/issues/**").permitAll()   // 2. 이슈 조회(GET)는 모두 허용
                         .requestMatchers(HttpMethod.GET, "/labels", "/labels/**").permitAll()   // 3. 라벨 조회(GET)도 모두 허용
                         .anyRequest().authenticated()             // 나머지는 인증 필요
