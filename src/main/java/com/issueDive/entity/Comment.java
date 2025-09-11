@@ -40,14 +40,13 @@ public class Comment {
         @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
         private List<Comment> children = new ArrayList<>();
 
-        @Column(name = "created_at", updatable = false, insertable = false)
+        @Column(name = "created_at", nullable = false, updatable = false)
         private LocalDateTime createdAt;
 
-        @Column(name = "updated_at", insertable = false)
+        @Column(name = "updated_at", nullable = false)
         private LocalDateTime updatedAt;
 
         public void changeDescription(String description) { this.description = description; }
-
 
         @PrePersist
         public void prePersist() {
