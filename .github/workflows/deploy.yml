@@ -27,16 +27,9 @@ jobs:
             # 2. 최신 Docker 이미지 받아오기
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/issuedive:latest
             
-            # 3. 기존에 실행 중인 앱 컨테이너가 있다면 중지하고 삭제 (최초 실행 시 오류가 나지 않도록 || true 추가)
-            # docker stop issuedive-app || true
-            # docker rm issuedive-app || true
-            # -> 8080 포트를 사용하는 기존 컨테이너를 찾아 중지 및 삭제 로직으로 변경
-            # 컨테이너 이름과 상관없이 포트 기준으로 찾기 때문에 더 안정적
-            CONTAINER_ID=$(docker ps -q --filter "publish=8080")
-            if [ -n "$CONTAINER_ID" ]; then
-            docker stop $CONTAINER_ID
-            docker rm $CONTAINER_ID
-            fi
+            # 3. 기존 컨테이너를 이름으로 찾아 중지 및 삭제
+            docker stop issuedive-app || true
+            docker rm issuedive-app || true
             
             # 4. 최신 이미지로 새로운 앱 컨테이너 실행
             # 이전에 생성한 Docker 네트워크와 .env 파일을 사용합니다.
