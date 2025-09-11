@@ -53,6 +53,7 @@ JWT 기반 인증, AWS 배포, 로깅 및 모니터링까지 포함하여 실제
 - ChatGPT, Gemini, Claude
 
 ## 프로젝트 구조
+```plaintext
 src
  ├─ main/java/com/issueDive
  │   ├─ IssueDiveApplication.java
@@ -75,6 +76,7 @@ src
      ├─ service/        # 서비스 계층 단위 테스트
      ├─ security/       # JWT/시큐리티 테스트
      └─ exception/      # 예외 처리 테스트
+```
 
 ## 설치 및 실행
 ### 로컬 실행
