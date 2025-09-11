@@ -1,9 +1,6 @@
 package com.issueDive.controller;
 
 import com.issueDive.dto.*;
-import com.issueDive.entity.User;
-import com.issueDive.exception.UserNotFoundException;
-import com.issueDive.repository.UserRepository;
 import com.issueDive.service.IssueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -25,7 +22,7 @@ import java.util.Map;
 
 @Tag(name = "Issue", description = "이슈 관리 API")
 @RestController
-@RequestMapping("/issues")
+@RequestMapping("/api/issues")
 @RequiredArgsConstructor
 public class IssueController {
 

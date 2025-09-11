@@ -42,6 +42,9 @@ class IssueDiveApplicationTests {
 	@Autowired
 	private IssueAssigneeRepository issueAssigneeRepository;
 
+
+	private static final String API_PREFIX = "/api";
+
 	@BeforeEach
 	void setUp() {
 		// 각 테스트 실행 전에 데이터베이스를 비움
@@ -78,7 +81,7 @@ class IssueDiveApplicationTests {
 				.build());
 
 		// when: API를 호출해 필터링된 결과 요청
-		mockMvc.perform(get("/issues")
+		mockMvc.perform(get(API_PREFIX + "/issues")
 						.param("status", "OPEN") // OPEN 상태인 이슈만 필터링
 						.param("authorId", author.getId().toString())
 						.param("assigneeIds", assignee.getId().toString())

@@ -27,7 +27,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import static org.mockito.MockitoAnnotations.openMocks;
 /**
  * @WebMvcTest: 웹 계층(컨트롤러)에 대한 슬라이스 테스트를 진행합니다.
  * @AutoConfigureMockMvc: MockMvc를 자동으로 설정하며, addFilters = false를 통해
@@ -59,6 +58,8 @@ public class AuthControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
+    private static final String API_PREFIX = "/api";
+
     @Test
     @DisplayName("[SUCCESS] POST /auth/signup - 회원가입 성공")
     void signUp_success() throws Exception {
@@ -76,7 +77,7 @@ public class AuthControllerTest {
         given(jwtUtil.generateAccessToken(anyLong(), anyString())).willReturn(mockToken);
 
         // when & then: API를 호출하고 응답을 검증
-        mvc.perform(post("/auth/signup")
+        mvc.perform(post(API_PREFIX + "/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsString(requestBody)))
                 .andExpect(status().isCreated()) // 201 Created 상태 코드 확인
@@ -102,7 +103,7 @@ public class AuthControllerTest {
         given(jwtUtil.generateAccessToken(anyLong(), anyString())).willReturn(mockToken);
 
         // when & then
-        mvc.perform(post("/auth/login")
+        mvc.perform(post(API_PREFIX + "/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsString(requestBody)))
                 .andExpect(status().isOk()) // 200 OK 상태 코드 확인
@@ -124,7 +125,7 @@ public class AuthControllerTest {
         given(authenticationManager.authenticate(any())).willThrow(new AuthenticationFailedException());
 
         // when & then
-        mvc.perform(post("/auth/login")
+        mvc.perform(post(API_PREFIX + "/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsString(requestBody)))
                 .andExpect(status().isUnauthorized()); // 401 Unauthorized 상태 코드 확인
@@ -138,7 +139,7 @@ public class AuthControllerTest {
                 .willReturn(new UserResponseDTO(1L, "alice", "alice@test.com"));
 
         // when & then
-        mvc.perform(get("/auth/users/{id}", 1L))
+        mvc.perform(get(API_PREFIX + "/auth/users/{id}", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(1L))
                 .andExpect(jsonPath("$.data.username").value("alice"));
@@ -152,7 +153,7 @@ public class AuthControllerTest {
                 .willThrow(new UserNotFoundException(999L));
 
         // when & then
-        mvc.perform(get("/auth/users/{id}", 999L))
+        mvc.perform(get(API_PREFIX + "/auth/users/{id}", 999L))
                 .andExpect(status().isNotFound()); // 404 Not Found 상태 코드 확인
     }
 
@@ -167,7 +168,7 @@ public class AuthControllerTest {
         given(userService.getAllUsers()).willReturn(userList);
 
         // when & then
-        mvc.perform(get("/auth/users"))
+        mvc.perform(get(API_PREFIX + "/auth/users"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data[0].email").value("a@test.com"))
@@ -181,7 +182,7 @@ public class AuthControllerTest {
         doNothing().when(userService).deleteUser(1L);
 
         // when & then
-        mvc.perform(delete("/auth/user/{id}", 1L))
+        mvc.perform(delete(API_PREFIX + "/auth/user/{id}", 1L))
                 .andExpect(status().isOk());
     }
 
@@ -201,7 +202,7 @@ public class AuthControllerTest {
         given(userService.findUserByEmail("alice@test.com")).willReturn(userResponse);
         given(jwtUtil.generateAccessToken(1L, "alice@test.com")).willReturn(mockToken);
 
-        mvc.perform(post("/auth/login")
+        mvc.perform(post(API_PREFIX + "/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(om.writeValueAsString(req)))
                 .andDo(print())
@@ -217,7 +218,7 @@ public class AuthControllerTest {
     @Test
     @DisplayName("POST /auth/logout - 로그아웃 응답 확인")
     void logout_success() throws Exception {
-        mvc.perform(post("/auth/logout"))
+        mvc.perform(post(API_PREFIX + "/auth/logout"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.message").value("로그아웃되었습니다. 클라이언트에서 토큰을 삭제해주세요."))
                 .andExpect(jsonPath("$.data.instruction").value("localStorage에서 accessToken을 제거하세요."));

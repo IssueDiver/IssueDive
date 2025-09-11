@@ -53,6 +53,9 @@ public class SecurityConfigTest {
     @MockitoBean
     private TokenBlacklistService tokenBlacklistService;
 
+
+    private static final String API_PREFIX = "/api";
+
     private static final String VALID_TOKEN = "valid.jwt.token";
     private static final String USER_EMAIL = "test@example.com";
     private UserDetails userDetails;
@@ -73,7 +76,7 @@ public class SecurityConfigTest {
     @Test
     @DisplayName("공개 URL - /auth/signup 인증 없이 접근 가능")
     void publicUrl_Signup_AllowedWithoutAuth() throws Exception {
-        mockMvc.perform(post("/auth/signup")
+        mockMvc.perform(post(API_PREFIX + "/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andDo(print())
@@ -83,7 +86,7 @@ public class SecurityConfigTest {
     @Test
     @DisplayName("공개 URL - /auth/login 인증 없이 접근 가능")
     void publicUrl_Login_AllowedWithoutAuth() throws Exception {
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post(API_PREFIX + "/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andDo(print())
@@ -93,7 +96,7 @@ public class SecurityConfigTest {
     @Test
     @DisplayName("공개 URL - GET /issues 인증 없이 접근 가능")
     void publicUrl_GetIssues_AllowedWithoutAuth() throws Exception {
-        mockMvc.perform(get("/issues"))
+        mockMvc.perform(get(API_PREFIX + "/issues"))
                 .andDo(print())
                 .andExpect(status().isOk());
     }
@@ -101,7 +104,7 @@ public class SecurityConfigTest {
     @Test
     @DisplayName("공개 URL - GET /labels 인증 없이 접근 가능")
     void publicUrl_GetLabels_AllowedWithoutAuth() throws Exception {
-        mockMvc.perform(get("/labels"))
+        mockMvc.perform(get(API_PREFIX + "/labels"))
                 .andDo(print())
                 .andExpect(status().isOk());
     }
@@ -111,7 +114,7 @@ public class SecurityConfigTest {
     @Test
     @DisplayName("보호된 URL - POST /issues 인증 없이 접근 차단")
     void protectedUrl_PostIssues_BlockedWithoutAuth() throws Exception {
-        mockMvc.perform(post("/issues")
+        mockMvc.perform(post(API_PREFIX + "/issues")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Test\"}"))
                 .andDo(print())
@@ -121,7 +124,7 @@ public class SecurityConfigTest {
     @Test
     @DisplayName("보호된 URL - DELETE /issues/{id} 인증 없이 접근 차단")
     void protectedUrl_DeleteIssue_BlockedWithoutAuth() throws Exception {
-        mockMvc.perform(delete("/issues/1"))
+        mockMvc.perform(delete(API_PREFIX + "/issues/1"))
                 .andDo(print())
                 .andExpect(status().isForbidden());
     }
@@ -129,7 +132,7 @@ public class SecurityConfigTest {
     @Test
     @DisplayName("보호된 URL - /auth/logout 인증 없이 접근 차단")
     void protectedUrl_Logout_BlockedWithoutAuth() throws Exception {
-        mockMvc.perform(post("/auth/logout"))
+        mockMvc.perform(post(API_PREFIX + "/auth/logout"))
                 .andDo(print())
                 .andExpect(status().isForbidden());
     }
@@ -137,7 +140,7 @@ public class SecurityConfigTest {
     @Test
     @DisplayName("보호된 URL - /auth/users/{id} 인증 없이 접근 차단")
     void protectedUrl_GetUser_BlockedWithoutAuth() throws Exception {
-        mockMvc.perform(get("/auth/users/1"))
+        mockMvc.perform(get(API_PREFIX + "/auth/users/1"))
                 .andDo(print())
                 .andExpect(status().isForbidden());
     }
@@ -164,7 +167,7 @@ public class SecurityConfigTest {
         String validIssueJson = "{\"title\":\"Test Issue\",\"description\":\"Test Description\"}";
 
         // when & then
-        mockMvc.perform(post("/issues")
+        mockMvc.perform(post(API_PREFIX + "/issues")
                         .header("Authorization", "Bearer " + VALID_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validIssueJson))
@@ -181,7 +184,7 @@ public class SecurityConfigTest {
         given(jwtUtil.validateToken(invalidToken, USER_EMAIL)).willReturn(false);
 
         // when & then
-        mockMvc.perform(post("/issues")
+        mockMvc.perform(post(API_PREFIX + "/issues")
                         .header("Authorization", "Bearer " + invalidToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Test\"}"))
@@ -217,7 +220,7 @@ public class SecurityConfigTest {
     @Test
     @DisplayName("Stateless 세션 정책 - JSESSIONID 쿠키 생성 안함")
     void sessionPolicy_Stateless_NoSessionCreated() throws Exception {
-        mockMvc.perform(post("/issues")
+        mockMvc.perform(post(API_PREFIX + "/issues")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Test\"}"))
                 .andDo(print())

@@ -54,6 +54,9 @@ class XssFilterTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
+
+    private static final String API_PREFIX = "/api";
+
     @BeforeEach
     void setUp() {
         UserResponseDTO mockUser = new UserResponseDTO(1L, "testuser", "test@example.com");
@@ -131,7 +134,7 @@ class XssFilterTest {
         CreateIssueRequest requestDto = new CreateIssueRequest(maliciousInput, "description", null, null);
 
         // when
-        mockMvc.perform(post("/issues")
+        mockMvc.perform(post(API_PREFIX + "/issues")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
