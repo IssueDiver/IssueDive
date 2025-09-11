@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -64,6 +65,9 @@ public class SecurityConfigTest {
 
     @MockitoBean  // 이미 있을 것
     private TokenBlacklistService tokenBlacklistService;
+
+    @MockitoBean  // 이 줄을 추가하세요
+    private StringRedisTemplate stringRedisTemplate;
 
     private static final String VALID_TOKEN = "valid.jwt.token";
     private static final String USER_EMAIL = "test@example.com";
@@ -408,7 +412,7 @@ public class SecurityConfigTest {
 }
 /*
 
-import com.issueDive.security.CustomUserDetailsService;
+
 import com.issueDive.service.IssueService;
 import com.issueDive.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
