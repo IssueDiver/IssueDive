@@ -58,3 +58,7 @@ gradle.properties
 #성능 테스트 파일
 **/DataLoader.java
 test.js
+
+# macOS 시스템 파일
+.DS_Store
+**/*.DS_Store

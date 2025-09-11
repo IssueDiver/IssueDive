@@ -23,13 +23,13 @@ public class LabelService {
 
     private final LabelRepository labelRepository;
     private final IssueLabelRepository issueLabelRepository;
+
     //라벨 생성
     @Transactional
     public LabelResponse createLabel(CreateLabelRequest request) {
         if (labelRepository.existsByNameIgnoreCase(request.getName())) {
             throw new ValidationException(ErrorCode.DuplicateLabel,
-                    "Label with name " + request.getName() + " alre" +
-                            "ady exists");
+                    "Label with name " + request.getName() + " already exists");
         }
         Label savedLabel = labelRepository.save(
                 Label.builder()
@@ -46,14 +46,7 @@ public class LabelService {
     //라벨 목록 조회
     @Transactional(readOnly = true)
     public List<LabelResponse> getLabels() {
-        List<Label> labels = labelRepository.findAll();
-        List<LabelResponse> responses = new ArrayList<>();
-
-        for (Label label : labels) {
-            long issueOpenCount = issueLabelRepository.countByLabelAndIssue_Status(label, IssueStatus.OPEN);
-            responses.add(LabelResponse.from(label, issueOpenCount));
-        }
-        return responses;
+        return labelRepository.findAllWithOpenIssueCount();
     }
 
     //단일 라벨 조회
