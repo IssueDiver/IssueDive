@@ -68,7 +68,6 @@ src
  │   └─ util/           # JwtUtil 등 유틸리티
  │
  ├─ main/resources
- │   ├─ application-prod.yml
  │   └─ db/migration/   # Flyway 마이그레이션 스크립트
  │
  └─ test/java/com/issueDive
