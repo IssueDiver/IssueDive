@@ -95,11 +95,13 @@ docker-compose up --build
 ```
 
 ## 환경 변수
-| DB_HOST     | RDS 엔드포인트   | issuedive-mysql.cro4kgswk31z.ap-northeast-2.rds.amazonaws.com |
-| DB_PORT     | DB 포트         | 3306 |
-| DB_NAME     | DB 이름         | issue_dive |
-| DB_USER     | DB 사용자       | issue |
-| DB_PASSWORD | DB 비밀번호     | **** |
+| 이름        | 설명          | 예시 |
+|-------------|---------------|---------------------------------------------|
+| DB_HOST     | RDS 엔드포인트 | issuedive-mysql.cro4kgswk31z.ap-northeast-2.rds.amazonaws.com |
+| DB_PORT     | DB 포트       | 3306 |
+| DB_NAME     | DB 이름       | issue_dive |
+| DB_USER     | DB 사용자     | issue |
+| DB_PASSWORD | DB 비밀번호   | **** |
 
 ## API 문서
 - 로컬 실행 시: [Swagger UI] http://localhost:8080/swagger-ui/index.html
