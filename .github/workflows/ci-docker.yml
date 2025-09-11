@@ -3,6 +3,8 @@ name: IssueDive Docker CI
 on:
   push:
     branches: [ "dev" ] # dev 브랜치에 푸시될 때 실행
+  pull_request:
+      branches: [ "dev" ] # PR 보낼 때도 실행
 
 jobs:
   build-and-push:
