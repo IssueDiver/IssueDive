@@ -7,6 +7,9 @@ WORKDIR /app
 COPY build.gradle settings.gradle gradlew ./
 COPY gradle ./gradle
 
+# gradlew 파일에 실행 권한 부여
+RUN chmod +x gradlew && sed -i 's/\r$//' gradlew
+
 # 의존성 다운로드 (네트워크를 사용하는 단계이므로 먼저 실행)
 RUN ./gradlew --no-daemon dependencies
 

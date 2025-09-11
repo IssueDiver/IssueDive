@@ -1,5 +1,6 @@
 package com.issueDive.dto;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -9,9 +10,9 @@ public record IssueResponse(
         String description,
         String status,
         Long authorId,
-        Long assigneeId,
+        List<Long> assigneeIds,
         List<Long> labelIds,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
-) {
+) implements Serializable {
 }

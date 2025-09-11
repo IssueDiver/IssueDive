@@ -3,6 +3,7 @@ package com.issueDive.dto;
 import com.issueDive.entity.Comment;
 import lombok.*;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -11,11 +12,11 @@ import java.util.*;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class CommentResponse {
+public class CommentResponse implements Serializable {
 
     private Long id;
     private Long issueId;
-    private Long userId;
+    private Long authorId;
     private String author;
     private String description;
     private Long parentId;
@@ -41,7 +42,7 @@ public class CommentResponse {
         return CommentResponse.builder()
                 .id(comment.getId())
                 .issueId(comment.getIssue().getId())
-                .userId(comment.getUser().getId())
+                .authorId(comment.getUser().getId())
                 .author(comment.getUser().getUsername())
                 .description(comment.getDescription())
                 .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
@@ -76,6 +77,11 @@ public class CommentResponse {
                 }
             }
         }
+
+        // 3) 계층 구조가 완성된 후, 최상위 댓글(roots)만 생성 시간(createdAt)을 기준으로 내림차순 정렬
+        // -> 이렇게 하면 대댓글이 달려도 최상위 댓글의 순서는 절대 변하지 않습니다.
+        roots.sort(Comparator.comparing(CommentResponse::getCreatedAt).reversed());
+
         return roots;
     }
 }

@@ -29,16 +29,41 @@ import com.issueDive.util.JwtUtil;
 public class
 AuthController {
     private final UserService userService;
-    // private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
-    @Operation(summary = "회원가입", description = "새로운 사용자를 등록합니다.")
+    @Operation(summary = "회원가입 및 자동 로그인", description = "새로운 사용자를 등록하고, 성공 시 즉시 로그인 처리하여 JWT를 발급합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "회원가입 및 자동 로그인 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = JwtResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 값 (유효성 검증 실패)", content = @Content),
+            @ApiResponse(responseCode = "409", description = "중복된 이메일", content = @Content)
+    })
+    @PostMapping("/signup")
+    public ResponseEntity<ApiCommonResponse<JwtResponse>> signUp(@RequestBody(description = "회원가입 정보", required = true, content = @Content(schema = @Schema(implementation = UserRequestDTO.class))) @Valid @org.springframework.web.bind.annotation.RequestBody UserRequestDTO request){
+        // 1. 사용자 생성
+        UserResponseDTO user = userService.signUp(request);
+
+        // 2. 생성된 사용자 정보로 즉시 JWT 생성
+        String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail());
+
+        // 3. 로그인 API와 동일한 JwtResponse 형식으로 응답 구성
+        JwtResponse jwtResponse = JwtResponse.of(
+                accessToken,
+                "Bearer",
+                14400L, // 4시간 (초 단위) : 설정 파일에서 관리하는 것이 더 좋지만 우선은 기존 코드에 맞게 여기서 작성함
+                user
+        );
+
+        ApiCommonResponse<JwtResponse> response = ApiCommonResponse.ok(jwtResponse);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "회원가입 (자동 로그인 없음)", description = "새로운 사용자를 등록만 합니다. (테스트용)")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "회원가입 성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청 값 (중복된 이메일 등)", content = @Content)
     })
-    @PostMapping("/signup")
-    public ResponseEntity<ApiCommonResponse<UserResponseDTO>> signUp(@RequestBody(description = "회원가입 정보", required = true, content = @Content(schema = @Schema(implementation = UserRequestDTO.class))) @Valid @org.springframework.web.bind.annotation.RequestBody UserRequestDTO request){
+    @PostMapping("/signup-only")
+    public ResponseEntity<ApiCommonResponse<UserResponseDTO>> signUpOnly(@RequestBody(description = "회원가입 정보", required = true, content = @Content(schema = @Schema(implementation = UserRequestDTO.class))) @Valid @org.springframework.web.bind.annotation.RequestBody UserRequestDTO request){
         UserResponseDTO user = userService.signUp(request);
         ApiCommonResponse<UserResponseDTO> response = ApiCommonResponse.ok(user);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -126,3 +151,4 @@ AuthController {
         return ResponseEntity.ok(ApiCommonResponse.ok(users));
     }
 }
+//

@@ -1,5 +1,6 @@
 package com.issueDive.security;
 
+import com.issueDive.service.TokenBlacklistService;
 import com.issueDive.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -7,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,6 +26,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
+    @Autowired(required = false)  // 9월 10일
+    private TokenBlacklistService tokenBlacklistService; // 9월 10일 최종
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -35,6 +39,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
             if (jwt != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
+                // 9월 10일 최종 - 블랙리스트 체크 추가
+                if (tokenBlacklistService != null && tokenBlacklistService.isBlacklisted(jwt)) {
+                    log.warn("9월 10일 최종 - 블랙리스트 토큰 사용 시도");
+                    setErrorResponse(response, "토큰이 무효화되었습니다.");
+                    return;
+                }
                 // JWT에서 이메일 추출
                 String email = jwtUtil.getUserEmailFromToken(jwt);
 
@@ -104,7 +114,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
         String path = request.getRequestURI();
         return path.startsWith("/auth/signup") ||
                 path.startsWith("/auth/login") ||
+                path.startsWith("/auth/refresh") ||
                 path.startsWith("/swagger-ui") ||
-                path.startsWith("/v3/api-docs");
+                path.startsWith("/v3/api-docs")||
+                path.startsWith("/actuator");
     }
 }

@@ -1,5 +1,6 @@
 HELP.md
 .gradle
+.gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
@@ -38,8 +39,8 @@ out/
 
 # Application Properties
 application.properties
-application-test.properties
 application-dev.properties
+application-prod.yml
 
 .secrets
 .env
@@ -53,3 +54,11 @@ gradle.properties
 **/secrets.properties
 **/*.secret
 **/jwt.properties
+
+#성능 테스트 파일
+**/DataLoader.java
+test.js
+
+# macOS 시스템 파일
+.DS_Store
+**/*.DS_Store

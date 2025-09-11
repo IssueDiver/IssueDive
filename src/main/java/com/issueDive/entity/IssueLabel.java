@@ -1,23 +1,22 @@
 package com.issueDive.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Table(name = "issue_label")
 public class IssueLabel {
 
+    @Builder.Default
     @EmbeddedId
-    private IssueLabelId id;
+    private IssueLabelId id = new IssueLabelId();
 
     @MapsId("issueId")
     @ManyToOne(fetch = FetchType.LAZY)
@@ -31,6 +30,12 @@ public class IssueLabel {
 
     @Column(name = "added_at", nullable = false, updatable = false)
     private LocalDateTime addedAt;
+
+    public IssueLabel(Issue issue, Label label) {
+        this.id = new IssueLabelId();
+        this.issue = issue;
+        this.label = label;
+    }
 
     @PrePersist
     public void prePersist() {

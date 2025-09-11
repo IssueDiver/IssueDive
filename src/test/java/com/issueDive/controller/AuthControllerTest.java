@@ -32,6 +32,7 @@ import static org.mockito.MockitoAnnotations.openMocks;
  * @WebMvcTest: 웹 계층(컨트롤러)에 대한 슬라이스 테스트를 진행합니다.
  * @AutoConfigureMockMvc: MockMvc를 자동으로 설정하며, addFilters = false를 통해
  * AuthController의 공개 API 테스트 시 Spring Security 필터를 적용하지 않습니다.
+ *
  */
 @WebMvcTest(controllers = AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -65,12 +66,14 @@ public class AuthControllerTest {
         var requestBody = Map.of(
                 "username", "alice",
                 "email", "alice@test.com",
-                "password", "pw123"
+                "password", "password123"
         );
         var responseDto = new UserResponseDTO(1L, "alice", "alice@test.com");
+        var mockToken = "mock-access-token";
 
         // userService.signUp 메서드가 호출될 때 위에서 정의한 DTO를 반환하도록 설정
         given(userService.signUp(any())).willReturn(responseDto);
+        given(jwtUtil.generateAccessToken(anyLong(), anyString())).willReturn(mockToken);
 
         // when & then: API를 호출하고 응답을 검증
         mvc.perform(post("/auth/signup")
@@ -78,8 +81,9 @@ public class AuthControllerTest {
                         .content(om.writeValueAsString(requestBody)))
                 .andExpect(status().isCreated()) // 201 Created 상태 코드 확인
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.username").value("alice"))
-                .andExpect(jsonPath("$.data.email").value("alice@test.com"));
+                .andExpect(jsonPath("$.data.accessToken").value(mockToken))
+                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.data.user.email").value("alice@test.com"));
     }
 
     @Test
@@ -88,7 +92,7 @@ public class AuthControllerTest {
         // given: 로그인 요청 데이터 설정
         var requestBody = Map.of(
                 "email", "alice@test.com",  //  ** LoginRequestDTO의 필드명인 'email'로 수정
-                "password", "pw123"
+                "password", "password123"
         );
         var userResponse = new UserResponseDTO(1L, "alice", "alice@test.com");
         var mockToken = "mock-access-token";
@@ -188,7 +192,7 @@ public class AuthControllerTest {
     void login_withJWT_tokenGeneration() throws Exception {
         var req = Map.of(
                 "email", "alice@test.com",
-                "password", "pw123"
+                "password", "password123"
         );
 
         String mockToken = "mock.jwt.token";
