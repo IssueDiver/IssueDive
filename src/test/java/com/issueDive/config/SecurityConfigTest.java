@@ -412,7 +412,7 @@ public class SecurityConfigTest {
 }
 /*
 
-import com.issueDive.security.CustomUserDetailsService;
+
 import com.issueDive.service.IssueService;
 import com.issueDive.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
