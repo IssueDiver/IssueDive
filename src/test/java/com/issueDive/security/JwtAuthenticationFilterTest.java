@@ -17,8 +17,6 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -160,7 +158,7 @@ public class JwtAuthenticationFilterTest {
     @DisplayName("공개 URL은 필터를 적용하지 않음 - /auth/signup")
     void shouldNotFilter_PublicUrl_Signup() {
         // given
-        given(request.getRequestURI()).willReturn("/auth/signup");
+        given(request.getRequestURI()).willReturn("/api/auth/signup");
 
         // when
         boolean shouldNotFilter = jwtAuthenticationFilter.shouldNotFilter(request);
@@ -173,7 +171,7 @@ public class JwtAuthenticationFilterTest {
     @DisplayName("공개 URL은 필터를 적용하지 않음 - /auth/login")
     void shouldNotFilter_PublicUrl_Login() {
         // given
-        given(request.getRequestURI()).willReturn("/auth/login");
+        given(request.getRequestURI()).willReturn("/api/auth/login");
 
         // when
         boolean shouldNotFilter = jwtAuthenticationFilter.shouldNotFilter(request);

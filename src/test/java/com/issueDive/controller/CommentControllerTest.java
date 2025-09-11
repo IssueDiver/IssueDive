@@ -68,6 +68,8 @@ class CommentControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
+    private static final String API_PREFIX = "/api";
+
     // 테스트에서 공통으로 사용할 ID 값들
     private final Long issueId = 1L;
     private final Long commentId = 1L;
@@ -97,7 +99,7 @@ class CommentControllerTest {
         when(commentService.getTreeByIssue(issueId)).thenReturn(Collections.emptyList());
 
         // when & then: API 호출 및 응답 검증
-        mockMvc.perform(get("/issues/{issueId}/comments", issueId))
+        mockMvc.perform(get(API_PREFIX + "/issues/{issueId}/comments", issueId))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
@@ -115,7 +117,7 @@ class CommentControllerTest {
         when(commentService.createComment(eq(issueId), any(CreateCommentRequest.class), eq(currentUserId))).thenReturn(response);
 
         // when & then
-        mockMvc.perform(post("/issues/{issueId}/comments", issueId)
+        mockMvc.perform(post(API_PREFIX + "/issues/{issueId}/comments", issueId)
                         .with(csrf()) // POST, PATCH, DELETE 등 CSRF 보호가 필요한 요청에 추가
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -136,7 +138,7 @@ class CommentControllerTest {
         when(commentService.updateComment(eq(issueId), eq(commentId), any(UpdateCommentRequest.class), eq(currentUserId))).thenReturn(response);
 
         // when & then
-        mockMvc.perform(patch("/issues/{issueId}/comments/{commentId}", issueId, commentId)
+        mockMvc.perform(patch(API_PREFIX + "/issues/{issueId}/comments/{commentId}", issueId, commentId)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -153,7 +155,7 @@ class CommentControllerTest {
         doNothing().when(commentService).deleteComment(issueId, commentId, currentUserId);
 
         // when & then
-        mockMvc.perform(delete("/issues/{issueId}/comments/{commentId}", issueId, commentId)
+        mockMvc.perform(delete(API_PREFIX + "/issues/{issueId}/comments/{commentId}", issueId, commentId)
                         .with(csrf()))
                 .andDo(print())
                 .andExpect(status().isNoContent()); // 204 No Content 상태 코드 확인
@@ -170,7 +172,7 @@ class CommentControllerTest {
         request.setDescription("");
 
         // when & then
-        mockMvc.perform(post("/issues/{issueId}/comments", issueId)
+        mockMvc.perform(post(API_PREFIX + "/issues/{issueId}/comments", issueId)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -189,7 +191,7 @@ class CommentControllerTest {
                 .thenThrow(new CommentNotFoundException("댓글을 찾을 수 없습니다."));
 
         // when & then
-        mockMvc.perform(patch("/issues/{issueId}/comments/{commentId}", issueId, commentId)
+        mockMvc.perform(patch(API_PREFIX + "/issues/{issueId}/comments/{commentId}", issueId, commentId)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -206,7 +208,7 @@ class CommentControllerTest {
                 .when(commentService).deleteComment(issueId, commentId, currentUserId);
 
         // when & then
-        mockMvc.perform(delete("/issues/{issueId}/comments/{commentId}", issueId, commentId)
+        mockMvc.perform(delete(API_PREFIX + "/issues/{issueId}/comments/{commentId}", issueId, commentId)
                         .with(csrf()))
                 .andDo(print())
                 .andExpect(status().isForbidden()) // 403 Forbidden 상태 코드 확인
@@ -221,7 +223,7 @@ class CommentControllerTest {
         when(commentService.countByIssue(issueId)).thenReturn(new CountCommentResponse(issueId, count));
 
         // when & then
-        mockMvc.perform(get("/issues/{issueId}/comments/count", issueId))
+        mockMvc.perform(get(API_PREFIX + "/issues/{issueId}/comments/count", issueId))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.issueId").value(issueId))

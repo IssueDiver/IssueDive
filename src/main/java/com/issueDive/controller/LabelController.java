@@ -24,6 +24,7 @@ import java.util.Map;
 
 @Tag(name = "Label", description = "레이블 관리 API")
 @RestController
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class LabelController {
     private final LabelService labelService;

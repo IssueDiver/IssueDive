@@ -9,6 +9,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,7 +21,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
-import com.issueDive.security.CustomUserDetailsService;
 import com.issueDive.security.JwtAuthenticationFilter;
 
 @Configuration
@@ -49,13 +49,13 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(PUBLIC_URLS).permitAll() // 공개 URL은 모두 허용
-                        .requestMatchers("/auth/signup", "/auth/login").permitAll()             // 1. 로그인/인증 관련 경로는 모두 허용
-                        .requestMatchers(HttpMethod.GET, "/issues", "/issues/**").permitAll()   // 2. 이슈 조회(GET)는 모두 허용
-                        .requestMatchers(HttpMethod.GET, "/labels", "/labels/**").permitAll()   // 3. 라벨 조회(GET)도 모두 허용
+                        .requestMatchers("/api/auth/signup", "/api/auth/login").permitAll()             // 1. 로그인/인증 관련 경로는 모두 허용
+                        .requestMatchers(HttpMethod.GET, "/api/issues", "/api/issues/**").permitAll()   // 2. 이슈 조회(GET)는 모두 허용
+                        .requestMatchers(HttpMethod.GET, "/api/labels", "/api/labels/**").permitAll()   // 3. 라벨 조회(GET)도 모두 허용
                         .anyRequest().authenticated()             // 나머지는 인증 필요
                 )
-                .formLogin(formLogin -> formLogin.disable())         // 폼 로그인 비활성화 (서버 사이드 렌더링 사용X)
-                .logout(logout -> logout.disable());                    // 로그아웃 비활성화 (서버에 로그인 상태 저장X: Stateless)
+                .formLogin(AbstractHttpConfigurer::disable)         // 폼 로그인 비활성화 (서버 사이드 렌더링 사용X)
+                .logout(AbstractHttpConfigurer::disable);                    // 로그아웃 비활성화 (서버에 로그인 상태 저장X: Stateless)
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

@@ -52,9 +52,6 @@ public class IssueControllerTest {
     @Autowired
     private MockMvc mockMvc; // HTTP 요청 시뮬레이션 객체
 
-    @Autowired
-    private ObjectMapper objectMapper; // JSON <-> Java Object 변환 객체
-
     // --- MockitoBean: 테스트 대상 컨트롤러의 의존성을 가짜(Mock) 객체로 주입 ---
     @MockitoBean
     private IssueService issueService;
@@ -69,6 +66,8 @@ public class IssueControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    private static final String API_PREFIX = "/api";
 
     // 테스트 전역에서 사용할 Mock 유저의 ID
     private final Long currentUserId = 1L;
@@ -111,7 +110,7 @@ public class IssueControllerTest {
             """;
 
         // when & then: API를 호출하고 응답을 검증
-        mockMvc.perform(post("/issues")
+        mockMvc.perform(post(API_PREFIX + "/issues")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
@@ -141,7 +140,7 @@ public class IssueControllerTest {
         }
         """;
 
-        mockMvc.perform(post("/issues")
+        mockMvc.perform(post(API_PREFIX + "/issues")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
@@ -165,7 +164,7 @@ public class IssueControllerTest {
                 .thenReturn(mockPage);
 
         // when & then
-        mockMvc.perform(get("/issues")
+        mockMvc.perform(get(API_PREFIX + "/issues")
                         .param("status", "OPEN")
                         .param("page", "0"))
                 .andExpect(status().isOk())
@@ -182,7 +181,7 @@ public class IssueControllerTest {
         Mockito.when(issueService.getIssue(1L)).thenReturn(mockResponse);
 
         // when & then
-        mockMvc.perform(get("/issues/1"))
+        mockMvc.perform(get(API_PREFIX + "/issues/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(1))
@@ -196,7 +195,7 @@ public class IssueControllerTest {
         Mockito.when(issueService.getIssue(999L)).thenThrow(new NotFoundException("Issue not found"));
 
         // when & then
-        mockMvc.perform(get("/issues/999"))
+        mockMvc.perform(get(API_PREFIX + "/issues/999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("IssueNotFound"));
     }
@@ -215,7 +214,7 @@ public class IssueControllerTest {
         """;
 
         // when & then
-        mockMvc.perform(patch("/issues/1/status")
+        mockMvc.perform(patch(API_PREFIX + "/issues/1/status")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
@@ -238,7 +237,7 @@ public class IssueControllerTest {
         """;
 
         // when & then
-        mockMvc.perform(patch("/issues/1/status")
+        mockMvc.perform(patch(API_PREFIX + "/issues/1/status")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))

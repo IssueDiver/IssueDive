@@ -38,6 +38,8 @@ public class GlobalExceptionHandlerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+    
+    private static final String API_PREFIX = "/api";
 
     // DuplicateEmail -> 409
     @Test
@@ -53,7 +55,7 @@ public class GlobalExceptionHandlerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/auth/signup")
+        mockMvc.perform(post(API_PREFIX + "/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isConflict())
@@ -76,7 +78,7 @@ public class GlobalExceptionHandlerTest {
                 """;
 
         // when & then: API 호출 시 401 Unauthorized 응답을 기대
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post(API_PREFIX + "/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isUnauthorized())
