@@ -108,48 +108,53 @@ public class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("유효하지 않은 토큰으로 인증 실패")
-    void doFilterInternal_InvalidToken_Failure() throws ServletException, IOException {
+    @DisplayName("유효하지 않은 토큰은 에러 응답 없이 필터를 통과해야 함")
+    void doFilterInternal_InvalidToken_ShouldPass() throws ServletException, IOException {
         // given
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter writer = new PrintWriter(stringWriter);
-
         given(request.getHeader("Authorization")).willReturn("Bearer " + VALID_TOKEN);
         given(jwtUtil.getUserEmailFromToken(VALID_TOKEN)).willReturn(USER_EMAIL);
         given(jwtUtil.validateToken(VALID_TOKEN, USER_EMAIL)).willReturn(false);
-        given(response.getWriter()).willReturn(writer);
 
         // when
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
         // then
-        verify(response).setContentType("application/json;charset=UTF-8");
-        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        verify(filterChain, never()).doFilter(request, response);
-        assertThat(stringWriter.toString()).contains("유효하지 않은 토큰입니다.");
+        // ======================= 변경된 검증 로직 =======================
+        // 1. response 객체와는 아무런 상호작용이 없어야 함
+        verify(response, never()).setContentType(anyString());
+        verify(response, never()).setStatus(anyInt());
+        verify(response, never()).getWriter();
+
+        // 2. 대신, filterChain.doFilter()가 1번 호출되어 요청이 계속 진행되어야 함
+        verify(filterChain, times(1)).doFilter(request, response);
+
+        // 3. 인증 정보는 등록되지 않아야 함
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        // ==========================================================
     }
 
     @Test
-    @DisplayName("JWT 파싱 중 예외 발생 처리")
-    void doFilterInternal_ExceptionThrown_Handled() throws ServletException, IOException {
+    @DisplayName("JWT 파싱 중 예외가 발생해도 에러 응답 없이 필터를 통과해야 함")
+    void doFilterInternal_ExceptionThrown_ShouldPass() throws ServletException, IOException {
         // given
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter writer = new PrintWriter(stringWriter);
-
         given(request.getHeader("Authorization")).willReturn("Bearer " + VALID_TOKEN);
         given(jwtUtil.getUserEmailFromToken(VALID_TOKEN))
                 .willThrow(new RuntimeException("JWT 파싱 오류"));
-        given(response.getWriter()).willReturn(writer);
 
         // when
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
         // then
-        verify(response).setContentType("application/json;charset=UTF-8");
-        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        verify(filterChain, never()).doFilter(request, response);
-        assertThat(stringWriter.toString()).contains("토큰 처리 중 오류가 발생했습니다.");
+        // ======================= 변경된 검증 로직 =======================
+        // 1. response 객체와는 아무런 상호작용이 없어야 함
+        verify(response, never()).setContentType(anyString());
+        verify(response, never()).setStatus(anyInt());
+
+        // 2. 대신, filterChain.doFilter()가 1번 호출되어 요청이 계속 진행되어야 함
+        verify(filterChain, times(1)).doFilter(request, response);
+        // ==========================================================
     }
+
 
     @Test
     @DisplayName("공개 URL은 필터를 적용하지 않음 - /auth/signup")
@@ -238,31 +243,25 @@ public class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("Bearer 뒤에 토큰이 없는 경우 처리")
+    @DisplayName("Bearer 뒤에 토큰이 없는 경우 필터를 통과해야 함")
     void doFilterInternal_BearerWithoutToken_Pass() throws ServletException, IOException {
         // given
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter writer = new PrintWriter(stringWriter);
-
-        // 9월 2일 변경: response.getWriter() mock을 먼저 설정 - NullPointerException 방지
-        given(response.getWriter()).willReturn(writer);
         given(request.getHeader("Authorization")).willReturn("Bearer ");
-        // 9월 2일 변경: request.getRequestURI() stubbing 제거 - 사용되지 않음
-        // given(request.getRequestURI()).willReturn("/issues");
-
-        // 9월 2일 변경: jwtUtil mock 추가 - Bearer 뒤 빈 토큰 파싱 시 null 반환
-        given(jwtUtil.getUserEmailFromToken("")).willReturn(null);
 
         // when
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
         // then
-        // 9월 2일 변경: 토큰이 빈 문자열이므로 에러 응답 검증으로 변경
-        verify(response).setContentType("application/json;charset=UTF-8");
-        verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        verify(filterChain, never()).doFilter(request, response);
-        // 9월 2일 변경: 실제 응답 메시지에 맞게 수정
-        assertThat(stringWriter.toString()).contains("유효하지 않은 토큰입니다.");
+        // ======================= 변경된 검증 로직 =======================
+        // 1. response 객체와는 아무런 상호작용이 없어야 함
+        verify(response, never()).setContentType(anyString());
+        verify(response, never()).setStatus(anyInt());
+
+        // 2. 다음 필터로 요청이 넘어가야 함
+        verify(filterChain, times(1)).doFilter(request, response);
+
+        // 3. 인증 정보는 등록되지 않아야 함
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        // ==========================================================
     }
 }
-//추가
