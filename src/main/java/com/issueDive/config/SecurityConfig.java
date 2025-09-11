@@ -37,6 +37,7 @@ public class SecurityConfig {
 
 
     // 공개적으로 접근 가능한 URL 목록
+    //
     private static final String[] PUBLIC_URLS = {
             "/swagger-ui/**",
             "/v3/api-docs/**",

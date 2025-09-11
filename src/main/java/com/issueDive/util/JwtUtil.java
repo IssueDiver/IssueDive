@@ -17,7 +17,7 @@ import java.util.Map;
 @Component
 public class JwtUtil {
 
-    //추후에 application.properties에 명시, 개발 중에만 하드코드로 넣어주기
+    //추후에 application.properties에 명시, 개발 중에만 하드코드로 넣어주어야함
     @Value("${jwt.secret:mySecretKeyForJwtTokenGenerationAndValidation123456789}")
     private String secretKey;
 

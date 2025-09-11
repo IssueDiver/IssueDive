@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
  * Controller에서 특정 예외가 발생했을 때, GlobalExceptionHandler가 그것을 잘 가로채서 우리가 원하는 JSON 에러 응답(예: 409 Conflict)을 만들어주는가?"를 검증하는 것이 목표이므로 @WebMvcTest 어노테이션을 사용하여 웹 계층만 로드함.
  * 다른 @Configuration의 영향을 받지 않고 순수하게 예외 처리 로직만 테스트하도록 함.
  * AuthController에 한해서 예외처리 테스트만 진행함 (다른 컨트롤러는 제외)
+ *
  */
 @WebMvcTest(controllers = AuthController.class) // 예외를 발생시킬 컨트롤러를 지정
 @AutoConfigureMockMvc(addFilters = false)
