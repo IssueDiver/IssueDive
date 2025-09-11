@@ -39,40 +39,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
             if (jwt != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                // 9월 10일 최종 - 블랙리스트 체크 추가
                 if (tokenBlacklistService != null && tokenBlacklistService.isBlacklisted(jwt)) {
-                    log.warn("9월 10일 최종 - 블랙리스트 토큰 사용 시도");
-                    setErrorResponse(response, "토큰이 무효화되었습니다.");
-                    return;
-                }
-                // JWT에서 이메일 추출
-                String email = jwtUtil.getUserEmailFromToken(jwt);
-
-                // 9월1일 변경 - AccessToken만 사용하므로 타입 체크 제거
-
-                // 토큰 유효성 검증
-                if (jwtUtil.validateToken(jwt, email)) {
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-
-                    log.debug("사용자 {} 인증 성공", email);
+                    log.warn("블랙리스트 토큰 사용 시도");
+                     setErrorResponse(response, "토큰이 무효화되었습니다.");
+                     return;
                 } else {
-                    log.warn("유효하지 않은 JWT 토큰: {}", email);
-                    setErrorResponse(response, "유효하지 않은 토큰입니다.");
-                    return;
+                    String email = jwtUtil.getUserEmailFromToken(jwt);
+
+                    // 토큰이 유효한 경우에만 SecurityContext에 인증 정보 저장
+                    if (jwtUtil.validateToken(jwt, email)) {
+                        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                        UsernamePasswordAuthenticationToken authentication =
+                                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                        log.debug("사용자 {} 인증 성공", email);
+                    }
+                    // ** 토큰이 유효하지 않은 경우(else), 아무것도 하지 않고 넘어감
                 }
             }
         } catch (Exception e) {
-            log.error("JWT 인증 처리 중 오류 발생", e);
-            setErrorResponse(response, "토큰 처리 중 오류가 발생했습니다.");
-            return;
+            // 로그만 남기고 넘김
+            log.error("JWT 토큰 처리 중 오류 발생 (요청은 계속 진행): {}", e.getMessage());
         }
 
+        // 모든 경우에 대해 다음 필터로 요청 전달
         filterChain.doFilter(request, response);
     }
 
