@@ -32,7 +32,7 @@ import com.issueDive.security.JwtAuthenticationFilter;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-//    private final CustomUserDetailsService userDetailsService; // DB 기반 인증
+    private final CustomUserDetailsService userDetailsService; // DB 기반 인증
     private final JwtAuthenticationFilter jwtAuthenticationFilter; // JWT 필터
 
 
@@ -89,6 +89,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    /*
     @Bean
     public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
         UserDetails user = User.withUsername("test")
@@ -97,6 +98,8 @@ public class SecurityConfig {
                 .build();
         return new InMemoryUserDetailsManager(user);
     }
+
+     */
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
