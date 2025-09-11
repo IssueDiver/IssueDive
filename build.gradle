@@ -120,3 +120,9 @@ flyway {
 }
 
 bootJar { archiveFileName = 'app.jar' }
+
+// Spring Boot가 실행 불가능한 -plain.jar 파일을 생성하지 않도록 설정합니다.
+// 이렇게 하면 build/libs 폴더에는 실행 가능한 Fat JAR 파일 하나만 남게 됩니다.
+tasks.named('jar', Jar) {
+    enabled = false
+}
